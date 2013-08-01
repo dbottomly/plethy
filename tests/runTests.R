@@ -1,1 +1,1 @@
-BiocGenerics:::testPackage("BuxcoR")
+BiocGenerics:::testPackage("plethy")

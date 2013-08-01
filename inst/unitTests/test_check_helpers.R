@@ -1,38 +1,22 @@
-
-#full tests are only run in house due to completion time
-
-full.tests <- FALSE
-
-if (full.tests == TRUE)
-{
-    test.bux.file <- "/Users/bottomly/Desktop/baric_heise_u19/sample_buxco/buxco_tests/lg_mf_2_20_12.txt"
-    test.bux.db.1 <- "/Users/bottomly/Desktop/baric_heise_u19/sample_buxco/buxco_tests/lg_mf_test.db"
-    test.bux.db.2 <- "/Users/bottomly/Desktop/baric_heise_u19/sample_buxco/buxco_tests/SM03020week.db"
-}else
-{
-    test.bux.file <- ""
-    test.bux.db.1 <- ""
-    test.bux.db.2 <- ""
-}
-
 require(RSQLite)
 require(reshape2)
 
 
-fix.time <- BuxcoR:::fix.time
-csv.to.table <- BuxcoR:::csv.to.table
-correct.breaks <- BuxcoR:::correct.breaks
-db.insert.autoinc <- BuxcoR:::db.insert.autoinc
-find.break.ranges.integer <- BuxcoR:::find.break.ranges.integer
-get.simple.single.col.query <- BuxcoR:::get.simple.single.col.query
-get.tab.ids <- BuxcoR:::get.tab.ids
-is.true.character <- BuxcoR:::is.true.character
-multi.grep <- BuxcoR:::multi.grep
-make.break.dta <- BuxcoR:::make.break.dta
-write.sample.db <- BuxcoR:::write.sample.db
-add.breaks.to.tab <- BuxcoR:::add.breaks.to.tab
-examine.table.lines <- BuxcoR:::examine.table.lines
-sanity.check.time <- BuxcoR:::sanity.check.time
+fix.time <- plethy:::fix.time
+csv.to.table <- plethy:::csv.to.table
+correct.breaks <- plethy:::correct.breaks
+db.insert.autoinc <- plethy:::db.insert.autoinc
+find.break.ranges.integer <- plethy:::find.break.ranges.integer
+get.simple.single.col.query <- plethy:::get.simple.single.col.query
+get.tab.ids <- plethy:::get.tab.ids
+is.true.character <- plethy:::is.true.character
+multi.grep <- plethy:::multi.grep
+make.break.dta <- plethy:::make.break.dta
+write.sample.db <- plethy:::write.sample.db
+add.breaks.to.tab <- plethy:::add.breaks.to.tab
+examine.table.lines <- plethy:::examine.table.lines
+sanity.check.time <- plethy:::sanity.check.time
+
 
 test.examine.table.lines <- function()
 {
@@ -45,7 +29,7 @@ test.examine.table.lines <- function()
 	
     test.con <- dbConnect("SQLite", "unit_test_extabl.db")
     
-    BuxcoR:::create.tables(test.con)
+    plethy:::create.tables(test.con)
     
     ret.list <- new("RetList", max.run.time.mins=60)
     
@@ -58,7 +42,7 @@ test.examine.table.lines <- function()
     checkTrue(ret.list@cur.table == "WBPth")
     
     #only read in the experimental run and header, not the acclimation line
-    exp.csv.tab <- BuxcoR:::csv.to.table(bux.lines.test.1[c(4, 11:length(bux.lines.test.1))], header=TRUE)
+    exp.csv.tab <- plethy:::csv.to.table(bux.lines.test.1[c(4, 11:length(bux.lines.test.1))], header=TRUE)
     melt.exp.csv.tab <- melt(exp.csv.tab, id.vars=c("Time", "Subject", "Phase", "Recording"))
     
     ret.list@samp.tab <- ret.list@samp.tab[,-which(names(ret.list@samp.tab) %in% c("break.num", "tab.name"))]
@@ -82,7 +66,7 @@ test.examine.table.lines <- function()
 	
     test.con <- dbConnect("SQLite", "unit_test_extabl.db")
     
-    BuxcoR:::create.tables(test.con)
+    plethy:::create.tables(test.con)
     
     ret.list <- new("RetList", max.run.time.mins=60)
     ret.list@cur.table <- "WBPth"
@@ -96,7 +80,7 @@ test.examine.table.lines <- function()
     ret.list <- examine.table.lines(bux.lines=bux.lines.test.2, table.delim="Table", burn.in.lines=c("Measurement", "Create measurement", "Waiting for","Site Acknowledgement Changed"),
 			ret.list=ret.list, db.con=test.con, verbose=FALSE)
     
-    exp.csv.tab <- BuxcoR:::csv.to.table(bux.lines.test.2[1:(length(bux.lines.test.2)-2)], header=FALSE)
+    exp.csv.tab <- plethy:::csv.to.table(bux.lines.test.2[1:(length(bux.lines.test.2)-2)], header=FALSE)
     colnames(exp.csv.tab) <- strsplit(readLines(buxco.sample.data.path(), n=2)[2], ",")[[1]]
     melt.exp.csv.tab <- melt(exp.csv.tab, id.vars=c("Time", "Subject", "Phase", "Recording"))
     
@@ -113,29 +97,53 @@ test.examine.table.lines <- function()
 
 test.dbImport <- function()
 {
-    if (file.exists(test.bux.db.1) == FALSE || file.exists(test.bux.db.2) == FALSE)
-	{
-		DEACTIVATED("Necessary files do not exist")
-	}
-
-    bux.db.1 <- makeBuxcoDB(test.bux.db.1)
-    bux.db.2 <- makeBuxcoDB(test.bux.db.2)
+    #can simulate two such databases instead of relying on the hardcoded paths
+    
+    samples=c(NA, "sample_1", NA, "sample_1", "sample_2", "sample_3")
+    count = c(NA,900, NA,150, 150, 110)
+    measure_break = c(FALSE, FALSE, TRUE, FALSE, FALSE,FALSE)
+    table_break = c(TRUE, rep(FALSE, length(samples)-1))
+    phase = rep("D1", length(samples))
+    
+    err.dta <- data.frame(samples=samples, count=count, measure_break=measure_break, table_break=table_break, phase=phase, stringsAsFactors=FALSE)
+    
+    sim.bux.lines <- plethy:::generate.sample.buxco(err.dta)
+    
+    temp.file <- tempfile()
+    temp.db.file <- tempfile()
+    write(sim.bux.lines, file=temp.file)
+    bux.db.1 <- parse.buxco(file.name=temp.file, db.name=temp.db.file, chunk.size=10000)
+    addAnnotation(bux.db.1, query=day.infer.query, index=FALSE)
+    addAnnotation(bux.db.1, query=break.type.query, index=TRUE)
+    
+    samples=c(NA, "sample_4", NA, "sample_4", "sample_5", NA, "sample_5")
+    count = c(NA,900, NA,150, 900, NA, 150)
+    measure_break = c(FALSE, FALSE, TRUE, FALSE, FALSE,TRUE, FALSE)
+    table_break = c(TRUE, rep(FALSE, length(samples)-1))
+    phase = rep("D1", length(samples))
+    
+    err.dta <- data.frame(samples=samples, count=count, measure_break=measure_break, table_break=table_break, phase=phase, stringsAsFactors=FALSE)
+    
+    sim.bux.lines <- plethy:::generate.sample.buxco(err.dta)
+    
+    temp.file <- tempfile()
+    temp.db.file <- tempfile()
+    write(sim.bux.lines, file=temp.file)
+    bux.db.2 <- parse.buxco(file.name=temp.file, db.name=temp.db.file, chunk.size=10000)
+    addAnnotation(bux.db.2, query=day.infer.query, index=FALSE)
+    addAnnotation(bux.db.2, query=break.type.query, index=TRUE)
     
     #need to test the new retrieveData code
     bux.2.dta <- retrieveData(bux.db.2)
     
-    db.name <- "merge_test_1.db"
-    
     #create a new database from the data.frame of an old one
-    bux.db.3 <- dbImport(bux.db=NULL, bux.dta=bux.2.dta, db.name=db.name, debug=TRUE)
+    bux.db.3 <- dbImport(bux.db=NULL, bux.dta=bux.2.dta, db.name=tempfile(), debug=FALSE)
     
     bux.2.dta.test <- retrieveData(bux.db.3)
     checkTrue(compare.bux.dta(dta.1=bux.2.dta, dta.2=bux.2.dta.test))
     
-    file.remove(db.name)
-    
     #next test whether new data can be successfully added to an existing database
-    bux.db.4 <- dbImport(bux.db=bux.db.1, bux.dta=bux.2.dta, db.name=db.name, debug=TRUE)
+    bux.db.4 <- dbImport(bux.db=bux.db.1, bux.dta=bux.2.dta, db.name=tempfile(), debug=FALSE)
     
     bux.2.dta.test <- retrieveData(bux.db.4, samples = unique(bux.2.dta$Sample_Name))
     checkTrue(compare.bux.dta(dta.1=bux.2.dta, dta.2=bux.2.dta.test))
@@ -418,15 +426,12 @@ test.get.simple.single.col.query <- function()
 	file.remove("test.db")
 }
 
-#shouldn't actually run this one routinely, just when parsing new files for now.
 test.parse.buxco <- function()
 {
-	if (file.exists(test.bux.file) == FALSE)
-	{
-		DEACTIVATED("Necessary file does not exist")
-	}
 	
-	bux.db <- parse.buxco(file.name=test.bux.file, verbose=FALSE)
+	test.bux.file <- buxco.sample.data.path()
+	
+	bux.db <- parse.buxco(file.name=test.bux.file, db.name=tempfile(), verbose=FALSE)
 
 	test <- retrieveData(bux.db)
 	
@@ -491,9 +496,9 @@ test.add.breaks.to.tab <- function()
 	break.dta <- basic.result$break.dta
 	break.dta$break.num <- 1
 	
-	ret.list <- BuxcoR:::basicRetList()
+	ret.list <- plethy:::basicRetList()
 	
-	BuxcoR:::variable(ret.list) <- data.frame(Variable_ID=1:(ncol(bux.tab)-5 +1), Variable_Name=colnames(bux.tab)[5:ncol(bux.tab)], stringsAsFactors=FALSE)
+	plethy:::variable(ret.list) <- data.frame(Variable_ID=1:(ncol(bux.tab)-5 +1), Variable_Name=colnames(bux.tab)[5:ncol(bux.tab)], stringsAsFactors=FALSE)
 	
 	#try a basic one
 	
@@ -503,8 +508,8 @@ test.add.breaks.to.tab <- function()
 	new.ret.list <- add.breaks.to.tab(tab=bux.tab, break.dta=break.dta, ret.list=ret.list)
 	
 	checkTrue(class(new.ret.list) == "RetList")
-	checkEquals(BuxcoR:::breakData(new.ret.list), exp.break.dta)
-	checkEquals(exp.samp.tab[,names(BuxcoR:::sampTab(new.ret.list))], BuxcoR:::sampTab(new.ret.list))
+	checkEquals(plethy:::breakData(new.ret.list), exp.break.dta)
+	checkEquals(exp.samp.tab[,names(plethy:::sampTab(new.ret.list))], plethy:::sampTab(new.ret.list))
 	
 	#slightly more complicated one with two breaks
 	
@@ -515,8 +520,8 @@ test.add.breaks.to.tab <- function()
 	new.ret.list <- add.breaks.to.tab(tab=bux.tab, break.dta=break.dta, ret.list=ret.list)
 	
 	checkTrue(class(new.ret.list) == "RetList")
-	checkEquals(BuxcoR:::breakData(new.ret.list), exp.break.dta)
-	checkEquals(exp.samp.tab[,names(BuxcoR:::sampTab(new.ret.list))], BuxcoR:::sampTab(new.ret.list))
+	checkEquals(plethy:::breakData(new.ret.list), exp.break.dta)
+	checkEquals(exp.samp.tab[,names(plethy:::sampTab(new.ret.list))], plethy:::sampTab(new.ret.list))
 }
 
 test.correct.breaks <- function()
@@ -525,7 +530,7 @@ test.correct.breaks <- function()
 	
 	burn.in.lines <- c("Measurement", "Create measurement", "Waiting for","Site Acknowledgement Changed")
 	
-	ret.list <- BuxcoR:::basicRetList()
+	ret.list <- plethy:::basicRetList()
 	
 	#no break first chunk
 	
@@ -550,7 +555,7 @@ test.correct.breaks <- function()
 	
 	#break at end first chunk
 
-	BuxcoR:::breakAtEnd(ret.list) <- TRUE
+	plethy:::breakAtEnd(ret.list) <- TRUE
 	
 	exp.dta <- data.frame(start=1, end=99, width=99, break.num=2)
 	break.dta <- data.frame(start=1, end=99, width=99)
@@ -559,8 +564,8 @@ test.correct.breaks <- function()
 
 	#no break end not first chunk
 
-	BuxcoR:::breakAtEnd(ret.list) <- FALSE
-	BuxcoR:::breakData(ret.list) <- data.frame(start=1, end=95, width=95, break.num=2)
+	plethy:::breakAtEnd(ret.list) <- FALSE
+	plethy:::breakData(ret.list) <- data.frame(start=1, end=95, width=95, break.num=2)
 	
 	exp.dta <- data.frame(start=1, end=99, width=99, break.num=2)
 	break.dta <- data.frame(start=1, end=99, width=99)
@@ -583,7 +588,7 @@ test.correct.breaks <- function()
 
 	#break at end not first chunk
 
-	BuxcoR:::breakAtEnd(ret.list) <- TRUE
+	plethy:::breakAtEnd(ret.list) <- TRUE
 	
 	exp.dta <- data.frame(start=1, end=99, width=99, break.num=3)
 	break.dta <- data.frame(start=1, end=99, width=99)
@@ -678,10 +683,10 @@ test.write.sample.db <- function()
 	
 	#need to make me a RetList object instead...
 
-	ret.list <- BuxcoR:::basicRetList()
+	ret.list <- plethy:::basicRetList()
 	
-	BuxcoR:::variable(ret.list) <- var.db
-	BuxcoR:::buxTable(ret.list) <- tab.db
+	plethy:::variable(ret.list) <- var.db
+	plethy:::buxTable(ret.list) <- tab.db
 	
 	write.sample.db(db.con=test.con, dta.tab=test.dta.tab, ret.list=ret.list, verbose=FALSE)
 	
@@ -899,4 +904,114 @@ test.sanity.check.time <- function()
     test.sec.vec.2 <- suppressWarnings(sanity.check.time(sec.vec.2, 3600))
     
     checkIdentical(c(sec.vec.1, seq(0, 298, by=2)), test.sec.vec.2)
+}
+
+##tests for the utility functions, first make some sample data
+
+#test both get.err.breaks and test.adjust.labels at the same time...
+test.get.err.breaks <- function()
+{
+    samples=c(NA, "sample_1", NA, "sample_1", "sample_2", NA, "sample_3", "sample_2", NA, "sample_3", "sample_4",NA, "sample_4", "sample_2", NA, "sample_2", "sample_5")
+    count = c(NA,900, NA,150, 1, NA, 900, 28,NA, 150, 900, NA, 150, 900, NA, 150, 900)
+    measure_break = c(FALSE, FALSE, TRUE, FALSE, FALSE, TRUE,FALSE, FALSE,TRUE,FALSE, FALSE, TRUE,FALSE, FALSE, TRUE, FALSE, FALSE)
+    table_break = c(TRUE, rep(FALSE, length(samples)-1))
+    phase = rep("D1", length(samples))
+    
+    err.dta <- data.frame(samples=samples, count=count, measure_break=measure_break, table_break=table_break, phase=phase, stringsAsFactors=FALSE)
+    
+    sim.bux.lines <- plethy:::generate.sample.buxco(err.dta)
+    
+    temp.file <- tempfile()
+    temp.db.file <- tempfile()
+    write(sim.bux.lines, file=temp.file)
+    test.bux.db <- parse.buxco(file.name=temp.file, db.name=temp.db.file, chunk.size=10000)
+    addAnnotation(test.bux.db, query=day.infer.query, index=FALSE)
+    addAnnotation(test.bux.db, query=break.type.query, index=TRUE)
+    
+    test.err.breaks <- get.err.breaks(test.bux.db, max.exp.count=150, max.acc.count=900, vary.perc=.1, label.val="ERR")
+    
+    checkTrue(all(test.err.breaks$Sample_Name == "sample_2"))
+    checkTrue(all(test.err.breaks$Break_number[test.err.breaks$inferred_labs == "ERR"] %in% c(2,3)))
+    
+    checkTrue(all(test.err.breaks$Break_number[test.err.breaks$inferred_labs == "ACC"] == 5))
+    checkTrue(all(test.err.breaks$Break_number[test.err.breaks$inferred_labs == "EXP"] == 6))
+    
+    checkTrue(all(table(test.err.breaks$Variable_Name) == sum(is.na(err.dta$samples) == FALSE & err.dta$samples == "sample_2")))
+    
+    orig.test <- retrieveData(test.bux.db)
+    
+    test.err.breaks <- get.err.breaks(test.bux.db, max.exp.count=150, max.acc.count=900, vary.perc=.1, label.val="ERR")
+    
+    adjust.labels(test.bux.db, test.err.breaks)
+    
+    test <- retrieveData(test.bux.db)
+    
+    checkTrue(all(test$Break_type_label_orig[test$Sample_Name == "sample_2"] == "ERR"))
+    checkTrue(all(test$Break_number[test$Break_type_label == "ERR"] %in% c(2,3)))
+    checkTrue(all(test$Break_number[test$inferred_labs == "ACC"] == 5))
+    checkTrue(all(test$Break_number[test$inferred_labs == "EXP"] == 6))
+    
+    sub.test <- test[,-which(names(test) == "Break_type_label")]
+    names(sub.test)[names(sub.test) == "Break_type_label_orig"] <- "Break_type_label"
+    checkEquals(orig.test, sub.test)
+    
+    checkException(get.err.breaks(test.bux.db, max.exp.count=150, max.acc.count=900, vary.perc=.1, label.val="HELLO"))
+    checkException(get.err.breaks(test.bux.db, max.exp.count=150, max.acc.count=900, vary.perc=.1, label.val="ACC"))
+}
+
+test.add.labels.by.sample <- function()
+{
+    samples=c(NA, "sample_1", NA, "sample_1", "sample_2", "sample_3")
+    count = c(NA,900, NA,150, 150, 110)
+    measure_break = c(FALSE, FALSE, TRUE, FALSE, FALSE,FALSE)
+    table_break = c(TRUE, rep(FALSE, length(samples)-1))
+    phase = rep("D1", length(samples))
+   
+    err.dta <- data.frame(samples=samples, count=count, measure_break=measure_break, table_break=table_break, phase=phase, stringsAsFactors=FALSE)
+    
+    sim.bux.lines <- plethy:::generate.sample.buxco(err.dta)
+    
+    temp.file <- tempfile()
+    temp.db.file <- tempfile()
+    write(sim.bux.lines, file=temp.file)
+    test.bux.db <- parse.buxco(file.name=temp.file, db.name=temp.db.file, chunk.size=10000)
+    addAnnotation(test.bux.db, query=day.infer.query, index=FALSE)
+    addAnnotation(test.bux.db, query=break.type.query, index=TRUE)
+    
+    samp.file <- sample.db.path()
+    new.file <- file.path(tempdir(), basename(samp.file))
+
+    stopifnot(file.copy(samp.file, new.file, overwrite=TRUE))
+
+    test.bux.db <- makeBuxcoDB(new.file)
+
+    addAnnotation(test.bux.db, query=day.infer.query, index=FALSE)
+    addAnnotation(test.bux.db, query=break.type.query, index=TRUE)
+    
+    test.orig <- retrieveData(test.bux.db)
+    
+    sample.labels <- data.frame(samples=c("8034x13140_1", "8034x13140_10", "8034x13140_4", "8034x13140_11"), inf_status=c("sars", "sars", "flu", "flu"), stringsAsFactors=FALSE)
+    
+    add.labels.by.sample(test.bux.db, sample.labels)
+
+    test <- retrieveData(test.bux.db)
+    
+    for (i in 1:nrow(sample.labels))
+    {
+        checkTrue(sum(test$Sample_Name == sample.labels$samples[i] & test$inf_status == sample.labels$inf_status[i]) == sum(test$Sample_Name == sample.labels$samples[i]))
+    }
+    
+    #check that all of the labels for sample_4 are NAs
+    
+    checkTrue(all(is.na(test$inf_status[test$Sample_Name %in% setdiff(samples(test.bux.db), sample.labels$samples)])))
+    
+    #Also double check against test.orig above
+   
+    test.orig <- test.orig[do.call("order", test.orig),]
+    rownames(test.orig) <- NULL
+    new.test <- test[,-which(names(test) == "inf_status")]
+    new.test <- new.test[do.call("order", new.test),]
+    rownames(new.test) <- NULL
+   
+    checkEquals(test.orig, new.test)
 }

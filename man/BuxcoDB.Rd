@@ -25,7 +25,7 @@
 
 \title{Class \code{"BuxcoDB"}}
 \description{
-This is the main class of the BuxcoR package.  Each object of this class simply holds the name of the database as well as the name(s) of any additional tables added through addAnnotation.
+This is the main class of the plethy package.  Each object of this class simply holds the name of the database as well as the name(s) of any additional tables added through addAnnotation.
 }
 \section{Objects from the Class}{
 Objects should be created by calls of the form \code{makeBuxcoDb(db.name=NULL, annotation.table="Additional_labels")}.
@@ -42,7 +42,7 @@ Objects should be created by calls of the form \code{makeBuxcoDb(db.name=NULL, a
     \item{annoTable}{\code{signature(obj = "BuxcoDB")}: Retrieve the name of the table where the additional annotation is to be stored.  This table will not exist until the \code{addAnnotation} method is called first.}
     \item{annoCols}{\code{signature(obj = "BuxcoDB")}: Returns a vector of the column names in the additional annotation table.}
     \item{annoLevels}{\code{signature(obj = "BuxcoDB")}: Returns a list of the same length as the number of annotation columns in the additional annotation table with each element containing the unique values for each column.}
-    \item{dbName}{\code{signature(obj = "BuxcoDB")}: Retrieve the path to the BuxcoR database}
+    \item{dbName}{\code{signature(obj = "BuxcoDB")}: Retrieve the path to the plethy database}
     \item{retrieveData}{\code{signature(obj = "BuxcoDB")}: With no arguments, this method will retrieve all available data in the database as a \code{data.frame}.  Specifying single or a vector of values to one or more of \code{samples}, \code{variables}, \code{tables}, \code{phase} or one of the addtional annotation names specified using \code{addAnnotation} will retrieve a subset of Buxco data.  Note that the valid variable (column) names for the annotation table can be found through the \code{annoCols} method and the valid variables for each variable name can be found through \code{annoLevels}.}
     \item{samples}{\code{signature(obj = "BuxcoDB")}: Returns a vector of the unique samples in the database}
     \item{tables}{\code{signature(obj = "BuxcoDB")}: Returns a vector of the unique tables in the database}

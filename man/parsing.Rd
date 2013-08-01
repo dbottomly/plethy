@@ -63,11 +63,9 @@ at once and returns a \code{data.frame} result.
 }
 \examples{
 
-bux.db <- parse.buxco(file.name=buxco.sample.data.path(), db.name = "example_bux.db")
+bux.db <- parse.buxco(file.name=buxco.sample.data.path(), db.name =tempfile())
 
 head(retrieveData(bux.db))
-
-file.remove("example_bux.db")
 
 }
 

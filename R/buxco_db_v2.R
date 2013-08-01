@@ -17,12 +17,12 @@
 
 sample.db.path <- function()
 {
-    system.file(file.path("extdata", "BuxcoR_sample.db"), package = "BuxcoR")
+    system.file(file.path("extdata", "BuxcoR_sample.db"), package = "plethy")
 }
 
 buxco.sample.data.path <- function()
 {
-    system.file(file.path("extdata","BuxcoR_sample.csv"), package = "BuxcoR")
+    system.file(file.path("extdata","BuxcoR_sample.csv"), package = "plethy")
 }
 
 

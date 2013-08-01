@@ -23,5 +23,8 @@ export(makeBuxcoDB, annoTable, annoCols, annoLevels, dbName, samples, variables,
 
 export(day.infer.query, break.type.query, parse.buxco,parse.buxco.basic)
 
+#utilities
+export(add.labels.by.sample, adjust.labels, get.err.breaks)
+
 #paths to sample data
 export(sample.db.path, buxco.sample.data.path)
