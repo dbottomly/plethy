@@ -1,0 +1,30 @@
+importClassesFrom(Streamer, ReadLinesProducer)
+importMethodsFrom(Streamer, yield)
+importFrom(Streamer, ReadLinesProducer, close.ConnectionProducer)
+
+importMethodsFrom(DBI, dbCommit, dbConnect, dbDisconnect, dbListTables,
+	dbListFields, dbGetQuery, dbWriteTable)
+
+importFrom(RSQLite, SQLite, sqliteQuickSQL)
+
+importMethodsFrom(RSQLite, dbGetPreparedQuery, dbBeginTransaction)
+
+importFrom(reshape2, melt)
+
+importFrom(batch, msplit)
+
+importClassesFrom(IRanges, Rle, IRanges)
+
+importFrom(IRanges, as.data.frame, Rle, IRanges)
+
+exportClasses(BuxcoDB)
+export(makeBuxcoDB, annoTable, annoCols, annoLevels, dbName, samples, variables,
+	tables, retrieveData, addAnnotation, dbImport)
+
+export(day.infer.query, break.type.query, parse.buxco,parse.buxco.basic)
+
+#utilities
+export(add.labels.by.sample, adjust.labels, get.err.breaks)
+
+#paths to sample data
+export(sample.db.path, buxco.sample.data.path)
