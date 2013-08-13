@@ -8,6 +8,7 @@ INSTALLATION
 A stable version is best obtained through Bioconductor:
 
 source("http://bioconductor.org/biocLite.R")
+
 biocLite("plethy")
 
 NOTE: Currently plethy is part of Bioconductor 2.13 which is the development branch so Bioconductor requires
@@ -17,6 +18,7 @@ Any new features, refactoring, or bug fixes will be applied here first so those 
 experimental version can install from here using the devtools package after first installing the dependencies:
 
 source("http://bioconductor.org/biocLite.R")
+
 biocLite(c("RSQLite", "batch", "IRanges", "reshape2", "Streamer"))
 
 install_github(username="dbottomly", repo="plethy", ref="master")
@@ -34,4 +36,5 @@ The Bioconductor mailing list is the best place to report bugs, ask questions or
 Package Maintainer:
 
 Dan Bottomly
+
 bottomly@ohsu.edu
