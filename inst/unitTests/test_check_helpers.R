@@ -193,9 +193,13 @@ test.annoCols <- function()
 	addAnnotation(bux.db, query=day.infer.query)
 	addAnnotation(bux.db, query=break.type.query)
 	
+	#added this case to deal with bug occuring when a column as _ID was added
+	
+	addAnnotation(bux.db, query=function(x) paste("SELECT Break_Chunk_ID, 10 AS test_ID FROM", annoTable(x)))
+	
 	anno.col.succ <- annoCols(bux.db)
 	
-	checkIdentical(anno.col.succ, c("Days", "Break_type_label"))
+	checkIdentical(anno.col.succ, c("Days", "Break_type_label", "test_ID"))
 	
 	checkTrue(file.remove(local.samp.db))
 }
@@ -895,13 +899,13 @@ test.sanity.check.time <- function()
 {
     sec.vec.1 <- seq(1, 300, by=2)
     
-    test.sec.vec.1 <- sanity.check.time(sec.vec.1, 3600)
+    test.sec.vec.1 <- sanity.check.time(sec.vec.1, 3600, "sample1", 10)
     
     checkIdentical(sec.vec.1, test.sec.vec.1)
     
     sec.vec.2 <- c(seq(1, 300, by=2), seq(3601, 3900, by=2))
     
-    test.sec.vec.2 <- suppressWarnings(sanity.check.time(sec.vec.2, 3600))
+    test.sec.vec.2 <- suppressWarnings(sanity.check.time(sec.vec.2, 3600, "sample1", 10))
     
     checkIdentical(c(sec.vec.1, seq(0, 298, by=2)), test.sec.vec.2)
 }

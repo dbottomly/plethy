@@ -256,7 +256,9 @@ find.bux.breaks <- function(filename, burn.in.lines=c("Measurement", "Create mea
     tables.pos <- plethy:::multi.grep(patterns=table.delim, str.vec=temp)
     table.ranges <- plethy:::find.break.ranges.integer(tables.pos, length(temp))
     cur.header <- character()
-   
+    
+    table.ranges <- table.ranges[table.ranges$width > 1,]
+    
     all.dta <- do.call("rbind", lapply(1:nrow(table.ranges), function(x)
            {
                 tab.temp <- temp[table.ranges$start[x]:table.ranges$end[x]]
@@ -295,3 +297,64 @@ find.bux.breaks <- function(filename, burn.in.lines=c("Measurement", "Create mea
     
     return(all.dta)
 }
+
+#basic sanity checks to ensure the parsing of the Buxco file seemed to be performed correctly
+#emits warnings if the resulting database looks outside of parameters and returns the queries as an invisble list of data.frames if the acutal output needs to be inspected.
+proc.sanity <- function(bux.db, max.exp.time=300, max.acc.time=1800, max.exp.count=150, max.acc.count=900)
+{
+    db.con <- dbConnect(SQLite(), dbName(bux.db))
+    
+    time.dta <- dbGetQuery(db.con, "SELECT Break_type_label, MIN(Break_sec_start) AS min_seconds, MAX(Break_sec_start) AS max_seconds from Additional_labels NATURAL JOIN Chunk_Time GROUP BY Break_type_label;")
+    
+    looks.good <- TRUE
+    
+    if (time.dta$max_seconds[time.dta$Break_type_label == "ACC"] > max.acc.time)
+    {
+        warning("Max ACC values outside of max.acc.time parameter")
+    }
+    
+    if (time.dta$max_seconds[time.dta$Break_type_label == "EXP"] > max.exp.time)
+    {
+        warning("Max EXP values outside of specified max.exp.time parameter")
+    }
+    
+    count.dta <- dbGetQuery(db.con, "SELECT Sample_Name, Variable_Name, Days, Break_type_label, COUNT(Time_ID) AS num_entries from Chunk_Time NATURAL JOIN Additional_labels NATURAL JOIN Variable NATURAL JOIN Sample GROUP BY Sample_Name, Variable_Name, Days, Break_type_label")
+
+    
+    if (any(count.dta$num_entries[count.dta$Break_type_label == "ACC"] > max.acc.count))
+    {
+        warning("Number of ACC values outside of specified max.acc.count parameter")
+    }
+    
+    if (any(count.dta$num_entries[count.dta$Break_type_label == "EXP"] > max.exp.count))
+    {
+        warning("Number of EXP values outside of specified max.exp.count parameter")
+    }
+    
+    if (all(annoLevels(bux.db)$Break_type_label %in% c("ACC", "EXP")) == FALSE)
+    {
+        warning("Break_type_labels other than ACC or EXP found")
+    }
+    
+    dbDisconnect(db.con)
+    
+    invisible(list(time=time.dta, count=count.dta))
+}
+
+#assuming Sample_Name column looks like: 15156x1566  f99, subtracts Sample_Name and adds the columns:
+#ID as RIX.ID_Mating
+#RIX.ID
+#Mating
+fix.sample.ids <- function(bux.dta)
+{
+    non.samp.name.col <- setdiff(names(bux.dta), "Sample_Name")
+    
+    split.samp.names <- strsplit(bux.dta$Sample_Name, "\\s+")
+    
+    bux.dta$Mating <- sapply(split.samp.names, "[", 1)
+    bux.dta$RIX_ID <- sub("f", "", sapply(split.samp.names, "[", 2))
+    bux.dta$ID <- paste(bux.dta$Mating, bux.dta$RIX_ID, sep="_")
+    
+    return(bux.dta[,c("ID", "RIX_ID", "Mating", non.samp.name.col)])
+}
+

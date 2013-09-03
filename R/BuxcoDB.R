@@ -44,11 +44,12 @@ setMethod("annoCols", signature("BuxcoDB"), function(obj)
                 }
                 else
                 {
-                    test.query <- dbGetQuery(db.con, paste("SELECT * FROM", annoTable(obj), "limit 5"))
+                    #modified this 9-03-2013 to deal with the case of columns added by user that had _ID, really only deal with the case of Break_Chunk_ID as the ID col...
+                    test.query <- dbListFields(db.con, annoTable(obj))
                     dbDisconnect(db.con)
-                    id.col <- names(test.query)[grep("_ID", names(test.query))]
+                    id.col <- test.query[test.query == "Break_Chunk_ID"]
                     stopifnot(length(id.col) == 1)
-                    lo.cols <- setdiff(names(test.query), id.col)
+                    lo.cols <- setdiff(test.query, id.col)
                     return(lo.cols)
                 }
           })
