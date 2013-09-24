@@ -11,6 +11,8 @@ importMethodsFrom(RSQLite, dbGetPreparedQuery, dbBeginTransaction)
 
 importFrom(reshape2, melt)
 
+importFrom(plyr, ddply, summarize)
+
 importFrom(batch, msplit)
 
 importClassesFrom(IRanges, Rle, IRanges)
@@ -19,7 +21,7 @@ importFrom(IRanges, as.data.frame, Rle, IRanges)
 
 exportClasses(BuxcoDB)
 export(makeBuxcoDB, annoTable, annoCols, annoLevels, dbName, samples, variables,
-	tables, retrieveData, addAnnotation, dbImport)
+	tables, retrieveData, addAnnotation, dbImport, summaryMeasures)
 
 export(day.infer.query, break.type.query, parse.buxco,parse.buxco.basic)
 

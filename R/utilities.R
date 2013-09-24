@@ -1,3 +1,27 @@
+
+#functions to be used in conjunction with the summaryMeasures method
+time.to.max.response <- function(x, day.name)
+{
+    return(data.frame(time.to.max.response=as.numeric(as.character(x[which.max(x$Value),day.name]))))
+}
+
+max.response <- function(x, day.name)
+{
+    return(data.frame(max.response=max(x$Value)))
+}
+
+auc.response <- function(x, day.name)
+{
+    x[,day.name] <- as.numeric(x[,day.name])
+    ord.days <- x[order(x[,day.name], decreasing=FALSE),]
+    return(data.frame(auc.response=(1/2)*sum(sapply(1:(nrow(ord.days)-1), function(y) (ord.days[,day.name][y+1]-ord.days[,day.name][y])*(ord.days$Value[y] + ord.days$Value[y+1])))))
+}
+
+mean.response <- function(x, day.name)
+{
+    return(data.frame(mean.response=mean(x$Value)))
+}
+
 #maybe make more general eventually and allow adding labels by more than just sample
 add.labels.by.sample <- function(bux.db, sample.labels)
 {

@@ -27,6 +27,53 @@ setMethod("show", signature("BuxcoDB"), function(object)
             message(paste("Annotation Table:", object@annotation.table))
         })
 
+setGeneric("summaryMeasures", def=function(obj,...) standardGeneric("summaryMeasures"))
+setMethod("summaryMeasures", signature("BuxcoDB"), function(obj, summary.type=c("time.to.max.response", "max.response", "auc.response", "mean.response"), sample.summary.func=function(x) data.frame(Value=mean(x$Value)), samples=NULL, variables=NULL, tables=NULL, Break_type_label="EXP", day.summary.column="Days")
+          {
+                summaries <- match.arg(summary.type, several.ok=TRUE)
+                
+                if (is.function(sample.summary.func) == FALSE)
+                {
+                    stop("ERROR: sample.summary.func needs to be a valid function")
+                }
+                
+                ret.dta <- retrieveData(obj, samples=samples, variables=variables, tables=tables, Break_type_label=Break_type_label)
+                
+                if (day.summary.column %in% names(ret.dta) == FALSE || any(is.na(as.numeric(ret.dta[,day.summary.column]))))
+                {
+                    stop("ERROR: day.summary.column needs to be a valid name in the database and be coercible to numeric values")
+                }
+                
+                if ("Break_type_label" %in% names(ret.dta) == FALSE)
+                {
+                    stop("ERROR: Break_type_label needs to be part of the returned values for ret.dta")
+                }
+                
+                if (any(Break_type_label %in% ret.dta$Break_type_label) == FALSE)
+                {
+                    stop("ERROR: At least one type element of Break_type_label needs to exist in the current output")
+                }
+                
+                sum.days <- ddply(ret.dta, c("Variable_Name", "Sample_Name", day.summary.column), .fun=sample.summary.func)
+                #a hack because ddply can't find the functions if they are supplied as characters...
+                
+                ret.dta <- data.frame(Variable_Name=character(0), Sample_Name=character(), stringsAsFactors=FALSE)
+                
+                for (i in summaries)
+                {
+                    summary.func <- get(i)
+                    
+                    temp.dta <- ddply(sum.days, c("Variable_Name", "Sample_Name"), .fun=summary.func, day.name=day.summary.column)
+                    temp.dta$Variable_Name <- as.character(temp.dta$Variable_Name)
+                    temp.dta$Sample_Name <- as.character(temp.dta$Sample_Name)
+                    
+                    ret.dta <- merge(ret.dta, temp.dta, by=c("Variable_Name", "Sample_Name"), all=TRUE, incomparables=NA, sort=FALSE)
+                }
+                
+                return(ret.dta)
+                
+          })
+
 setGeneric("annoTable", def=function(obj,...) standardGeneric("annoTable"))
 setMethod("annoTable", signature("BuxcoDB"), function(obj)
           {

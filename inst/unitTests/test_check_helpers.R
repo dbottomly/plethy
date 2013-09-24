@@ -17,6 +17,66 @@ add.breaks.to.tab <- plethy:::add.breaks.to.tab
 examine.table.lines <- plethy:::examine.table.lines
 sanity.check.time <- plethy:::sanity.check.time
 
+test.summaryMeasures <- function()
+{   
+    samples=rep(c(NA, "sample_1", NA, "sample_2"), 4)
+    count = rep(c(NA,150, NA,150), 4)
+    measure_break = c(c(FALSE, FALSE, TRUE, FALSE), rep(c(TRUE,FALSE, TRUE, FALSE), 3))
+    table_break = c(TRUE, rep(FALSE, length(samples)-1))
+    phase = c(rep(1, 4), rep(2, 4), rep(3,4), rep(4, 4))
+    
+    test.dta <- data.frame(samples=samples, count=count, measure_break=measure_break, table_break=table_break, phase=phase, stringsAsFactors=FALSE)
+    
+    sim.bux.lines <- plethy:::generate.sample.buxco(test.dta)
+    
+    temp.file <- tempfile()
+    temp.db.file <- tempfile()
+    write(sim.bux.lines, file=temp.file)
+    bux.db.1 <- parse.buxco(file.name=temp.file, db.name=temp.db.file, chunk.size=10000)
+    addAnnotation(bux.db.1, query=day.infer.query, index=FALSE)
+    addAnnotation(bux.db.1, query=break.type.query, index=TRUE)
+    
+    summary.type=c("time.to.max.response", "max.response", "auc.response", "mean.response")
+    
+    sums <- summaryMeasures(bux.db.1, summary.type=summary.type, sample.summary.func=function(x) data.frame(Value=mean(x$Value)), samples=NULL, variables=NULL, tables=NULL, Break_type_label="ERR", day.summary.column="Rec_Exp_date")
+    
+    checkTrue(length(intersect(colnames(sums),c("Variable_Name", "Sample_Name", summary.type))) == length(union(colnames(sums),c("Variable_Name", "Sample_Name", summary.type))))
+    
+    all.dta <- retrieveData(bux.db.1)
+    
+    day.mean.dta <- melt(with(all.dta, tapply(Value, list(Variable_Name, Sample_Name, Rec_Exp_date), mean)))
+    names(day.mean.dta) <- c("Variable_Name", "Sample_Name", "Rec_Exp_date", "Value")
+    
+    sums <- sums[do.call("order", sums[,1:2]),]
+    
+    mean.response <- melt(with(day.mean.dta, tapply(Value, list(Variable_Name, Sample_Name), mean)))
+    mean.response <- mean.response[do.call("order", mean.response[,1:2]),]
+    checkEquals(mean.response$value, sums$mean.response)
+    
+    time.to.max.response <- melt(as.table(by(day.mean.dta, day.mean.dta[,c("Variable_Name", "Sample_Name")], function(x) x$Rec_Exp_date[x$Value == max(x$Value)])))
+    time.to.max.response <- time.to.max.response[do.call("order", time.to.max.response[,1:2]),]
+    checkEquals(time.to.max.response$value, sums$time.to.max.response)
+    
+    max.response <- melt(with(day.mean.dta, tapply(Value, list(Variable_Name, Sample_Name), max)))
+    max.response <- max.response[do.call("order", max.response[,c(1:2)]),]
+    checkEquals(max.response$value, sums$max.response)
+    
+    #here first check the private function, then use it to check the sanity of sums
+    
+    #from Matthews et al. 1990 BMJ
+    
+    test.dta <- data.frame(Time=c(0,5,10,15,20,30,40,60,75,90,120), Value=c(0,8.3,21.6,33.9,35.5,47.2,38.3,20.5,13.3,0,0))
+    
+    checkTrue(as.numeric(plethy:::auc.response(test.dta, "Time")) == 2190)#close to the 2191 mentioned in the paper, maybe rounding errors...
+    
+    auc.response <- melt(as.table(by(day.mean.dta, day.mean.dta[,c("Variable_Name", "Sample_Name")], function(x) as.numeric(plethy:::auc.response(x, "Rec_Exp_date")))))
+    auc.response <- auc.response[do.call("order", auc.response[,1:2]),]
+    checkEquals(auc.response$value, sums$auc.response)
+    
+    checkException(summaryMeasures(bux.db.1, Break_type_label="ERR", day.summary.column="Days_2"))
+    checkException(summaryMeasures(bux.db.1, Break_type_label="EXP", day.summary.column="Rec_Exp_date"))
+    
+}
 
 test.examine.table.lines <- function()
 {
