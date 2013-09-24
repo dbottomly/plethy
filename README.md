@@ -17,7 +17,7 @@ Any new features, refactoring, or bug fixes will be applied here first so those 
 experimental version can install from here using the devtools package after first installing the dependencies:
 
 source("http://bioconductor.org/biocLite.R")  
-biocLite(c("RSQLite", "batch", "IRanges", "reshape2", "Streamer"))  
+biocLite(c("RSQLite", "batch", "IRanges", "reshape2", "Streamer", "plyr"))  
 install_github(username="dbottomly", repo="plethy", ref="master")
 
 The package can also be installed manually by first clicking 'Download ZIP' and unzipping the resulting 'plethy-master.zip'
