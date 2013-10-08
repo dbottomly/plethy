@@ -2,8 +2,9 @@ Changes in version 0.99.4:
 
 SIGNIFICANT USER-VISIBLE CHANGES
 
-The 'BuxcoR' package is now renamed 'plethy' as of version 0.99.3.  
+	o	The 'BuxcoR' package is now renamed 'plethy' as of version 0.99.3.  
 
 NEW FEATURES
 
-Added 'get.labels.by.sample', 'get.err.breaks' and 'adjust.labels' to assist with QA/QC of data.
+	o	Added 'get.labels.by.sample', 'get.err.breaks' and 'adjust.labels'
+	 to assist with QA/QC of data.
