@@ -10,8 +10,8 @@ A stable version is best obtained through Bioconductor:
 source("http://bioconductor.org/biocLite.R")  
 biocLite("plethy")
 
-NOTE: Currently plethy is part of Bioconductor 2.13 which is the development branch so Bioconductor requires
-R-3.01 and the useDevel=TRUE option before installation.
+The plethy package is part of Bioconductor 2.13 which is now the release version so use of R-3.02 is required
+for that version.
 
 Any new features, refactoring, or bug fixes will be applied here first so those interesting in the latest
 experimental version can install from here using the devtools package after first installing the dependencies:
