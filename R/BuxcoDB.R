@@ -150,7 +150,7 @@ setMethod("tables", signature("BuxcoDB"), function(obj)
           })
 
 setGeneric("retrieveData", def=function(obj,...) standardGeneric("retrieveData"))
-setMethod("retrieveData", signature("BuxcoDB"), function(obj, samples=NULL, variables=NULL, tables=NULL,phase=NULL,debug=FALSE, ...)
+setMethod("retrieveData", signature("BuxcoDB"), function(obj, samples=NULL, variables=NULL, tables=NULL,phase=NULL,timepoint=NULL, debug=FALSE, ...)
           {
             
             supplied.args <- ls()
