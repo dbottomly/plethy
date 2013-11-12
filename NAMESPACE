@@ -1,3 +1,4 @@
+import(methods)
 importClassesFrom(Streamer, ReadLinesProducer)
 importMethodsFrom(Streamer, yield)
 importFrom(Streamer, ReadLinesProducer, close.ConnectionProducer)
