@@ -244,29 +244,42 @@ setMethod("addAnnotation", signature("BuxcoDB"), function(obj, query=NULL, index
                     temp.tab.1 <- paste(annoTable(obj), "temp1", sep="_")
                     temp.tab.2 <- paste(annoTable(obj), "temp2", sep="_")
                     
-                    query.list <- c(paste("CREATE TEMPORARY TABLE", temp.tab.1,"AS SELECT * FROM", annoTable(obj)),
-                                    paste("CREATE TEMPORARY TABLE", temp.tab.2, " AS", use.query), paste("DROP TABLE", annoTable(obj)),
+                    query.list <- paste("CREATE TEMPORARY TABLE", temp.tab.1,"AS SELECT * FROM", annoTable(obj))
+                    
+                    if (length(use.query) > 1)
+                    {
+                        query.list <- c(query.list, use.query[1:(length(use.query)-1)])
+                    }
+                    
+                    query.list <- c(query.list, paste("CREATE TEMPORARY TABLE", temp.tab.2, " AS", use.query[length(use.query)]), paste("DROP TABLE", annoTable(obj)),
                                        paste("CREATE TABLE ", annoTable(obj), "AS SELECT * FROM", temp.tab.1, "NATURAL JOIN", temp.tab.2),
                                        paste("DROP TABLE", temp.tab.1), paste("DROP TABLE", temp.tab.2))
-                    
                 }
                 else
                 {
                     #otherwise just create the table directly
-                    query.list <- paste("CREATE TABLE", annoTable(obj), "AS", use.query)
+                    
+                    if (length(use.query) > 1)
+                    {
+                        query.list <- c(use.query[1:(length(use.query)-1)], paste("CREATE TABLE", annoTable(obj), "AS", use.query[length(use.query)]))
+                    }
+                    else
+                    {
+                        query.list <- paste("CREATE TABLE", annoTable(obj), "AS", use.query[length(use.query)])
+                    }
+                    
                 }
-                final.query <- paste(query.list, sep=";")
-                if (debug==TRUE)
+                
+                for (i in query.list)
                 {
-                    message(final.query)
-                }
-                else
-                {
-                    for (i in query.list)
+                    if (debug==TRUE)
+                    {
+                        message(i)
+                    }
+                    else
                     {
                         stopifnot(is.null(dbGetQuery(db.con, i)))
                     }
-                    
                 }
                 
                 if (index==TRUE)

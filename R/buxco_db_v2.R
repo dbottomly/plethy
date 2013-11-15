@@ -46,6 +46,14 @@ break.type.query <- function(obj)
     return(overall.query)
 }
 
+#A function that labels groups of samples based on their (first) timepoint assuming that that would indicate whether the animals were part of the same group of animals run at once. 
+chamber.inference.query <- function(obj)
+{
+    return(c("CREATE TEMPORARY TABLE min_time AS SELECT DISTINCT MIN(Time_ID) AS Min_time FROM Chunk_Time GROUP BY Sample_ID,Rec_Exp_date",
+            "CREATE TEMPORARY TABLE samp_sum AS SELECT Sample_ID, Rec_Exp_date, MIN(Time_ID) AS Min_time FROM Chunk_Time GROUP BY Sample_ID, Rec_Exp_date",
+           "SELECT Break_Chunk_ID, min_time.ROWID AS Chamber_group_ID FROM samp_sum JOIN min_time USING (Min_time) JOIN Chunk_Time USING (Sample_ID, Rec_Exp_date)"))
+}
+
 #A simple utility to ensure that the 'query.map' supplied to execute.query.map appears to be valid before attempting to process it.
 validate.query.map <- function(query.map)
 {
