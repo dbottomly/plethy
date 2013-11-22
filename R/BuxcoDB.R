@@ -20,6 +20,16 @@ makeBuxcoDB <- function(db.name=NULL, annotation.table="Additional_labels")
     return(new("BuxcoDB", db.name=db.name, annotation.table=annotation.table))
 }
 
+setGeneric("makeIndexes", def=function(obj,...) standardGeneric("makeIndexes"))
+setMethod("makeIndexes", signature("BuxcoDB"), function(obj, annotation.table=annoTable(obj))
+          {
+            db.con <- dbConnect(SQLite(), dbName(obj))
+            
+            make.annotation.indexes(db.con, annotation.table)
+            
+            invisible(dbDisconnect(db.con))
+          })
+
 setMethod("show", signature("BuxcoDB"), function(object)
         {
             message("BuxcoDB object")

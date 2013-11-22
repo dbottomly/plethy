@@ -1078,4 +1078,8 @@ test.add.labels.by.sample <- function()
     rownames(new.test) <- NULL
    
     checkEquals(test.orig, new.test)
+    
+    #also check that you can add info by phase as well...
+    
+    #sample.labels <- data.frame(samples=c("8034x13140_1", "8034x13140_10", "8034x13140_4", "8034x13140_11"), phase="D1", inf_status=c("sars", "sars", "flu", "flu"), stringsAsFactors=FALSE)
 }

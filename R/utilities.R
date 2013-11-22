@@ -40,13 +40,14 @@ add.labels.by.sample <- function(bux.db, sample.labels)
         diff.samps <- setdiff(sample.labels$sample, samples(bux.db))
         stop(paste("ERROR: Invalid samples specified:", paste(diff.samps, collapse=",")))
     }
+    #should be a check to make sure all the phase annotations are valid here: but need to expose that as a method: else if (any(names(sample.labels) == "phase") && )
     
     if (any(is.na(sample.labels)))
     {
         stop("ERROR: There cannot be NAs in sample.labels")
     }
     
-    if (ncol(sample.labels) == 1)
+    if ((ncol(sample.labels) == 1) || (ncol(sample.labels) == 2 && any(names(sample.labels) == "phase")))
     {
         stop("ERROR: There are no label columns specified")
     }
@@ -61,7 +62,7 @@ add.labels.by.sample <- function(bux.db, sample.labels)
         dbGetQuery(bux.con, "DROP TABLE temp_table")
     }
     
-    label.cols <- setdiff(names(sample.labels), "samples")
+    label.cols <- setdiff(names(sample.labels), c("samples", "phase"))
     
     #make sure these label columns don't clash with existing columns
     
@@ -99,11 +100,22 @@ add.labels.by.sample <- function(bux.db, sample.labels)
     
     all.labels <- paste(paste(label.cols, label.types), collapse=",")
     
-    dbGetQuery(bux.con, paste("CREATE TEMPORARY TABLE temp_table (Sample_Name TEXT, ", all.labels,")"))
+    if (any(names(sample.labels) == "phase"))
+    {
+        basic.col <- c("Sample_Name", "Rec_Exp_date")
+    }
+    else
+    {
+        basic.col <- "Sample_Name"
+    }
     
-    ins.query <- paste("INSERT INTO temp_table VALUES (:Sample_Name, ",paste(paste0(":", label.cols), collapse=","),")")
+   
+    dbGetQuery(bux.con, paste("CREATE TEMPORARY TABLE temp_table (", paste(paste(basic.col, "TEXT"), collapse=",") ,", ", all.labels,")"))
+    
+    ins.query <- paste("INSERT INTO temp_table VALUES (",paste(paste0(":", basic.col), collapse=",") ,", ",paste(paste0(":", label.cols), collapse=","),")")
     
     names(sample.labels)[names(sample.labels) == "samples"] <- "Sample_Name"
+    names(sample.labels)[names(sample.labels) == "phase"] <- "Rec_Exp_date"
     
     dbBeginTransaction(bux.con)
     dbGetPreparedQuery(bux.con, ins.query, sample.labels)
