@@ -1024,24 +1024,7 @@ test.get.err.breaks <- function()
 }
 
 test.add.labels.by.sample <- function()
-{
-    samples=c(NA, "sample_1", NA, "sample_1", "sample_2", "sample_3")
-    count = c(NA,900, NA,150, 150, 110)
-    measure_break = c(FALSE, FALSE, TRUE, FALSE, FALSE,FALSE)
-    table_break = c(TRUE, rep(FALSE, length(samples)-1))
-    phase = rep("D1", length(samples))
-   
-    err.dta <- data.frame(samples=samples, count=count, measure_break=measure_break, table_break=table_break, phase=phase, stringsAsFactors=FALSE)
-    
-    sim.bux.lines <- plethy:::generate.sample.buxco(err.dta)
-    
-    temp.file <- tempfile()
-    temp.db.file <- tempfile()
-    write(sim.bux.lines, file=temp.file)
-    test.bux.db <- parse.buxco(file.name=temp.file, db.name=temp.db.file, chunk.size=10000)
-    addAnnotation(test.bux.db, query=day.infer.query, index=FALSE)
-    addAnnotation(test.bux.db, query=break.type.query, index=TRUE)
-    
+{   
     samp.file <- sample.db.path()
     new.file <- file.path(tempdir(), basename(samp.file))
 
@@ -1081,5 +1064,37 @@ test.add.labels.by.sample <- function()
     
     #also check that you can add info by phase as well...
     
-    #sample.labels <- data.frame(samples=c("8034x13140_1", "8034x13140_10", "8034x13140_4", "8034x13140_11"), phase="D1", inf_status=c("sars", "sars", "flu", "flu"), stringsAsFactors=FALSE)
+    samples=c(NA, "sample_1", NA, "sample_1", "sample_2", NA, "sample_3", "sample_2", NA, "sample_3", "sample_1",NA, "sample_1", "sample_2", NA, "sample_2", "sample_3", NA, "sample_3")
+    count = c(NA,900, NA,150, 900, NA, 900, 150,NA, 150, 900,NA, 150, 900, NA, 150, 900, NA, 150)
+    measure_break = c(FALSE, FALSE, TRUE, FALSE, FALSE, TRUE,FALSE, FALSE,TRUE,FALSE, FALSE, TRUE,FALSE, FALSE, TRUE, FALSE, FALSE, TRUE, FALSE)
+    table_break = c(TRUE, rep(FALSE, length(samples)-1))
+    phase = c(rep("D1", 10), rep("D2", 9))
+   
+    err.dta <- data.frame(samples=samples, count=count, measure_break=measure_break, table_break=table_break, phase=phase, stringsAsFactors=FALSE)
+    
+    sim.bux.lines <- plethy:::generate.sample.buxco(err.dta)
+    
+    temp.file <- tempfile()
+    temp.db.file <- tempfile()
+    write(sim.bux.lines, file=temp.file)
+    test.bux.db <- parse.buxco(file.name=temp.file, db.name=temp.db.file, chunk.size=10000)
+    addAnnotation(test.bux.db, query=day.infer.query, index=FALSE)
+    addAnnotation(test.bux.db, query=break.type.query, index=FALSE)
+    
+    sample.labels <- data.frame(samples=c("sample_1", "sample_3", "sample_1"), phase=c("D1", "D1", "D2"), important_col=1:3, stringsAsFactors=FALSE)
+    
+    add.labels.by.sample(test.bux.db, sample.labels)
+    
+    test <- retrieveData(test.bux.db)
+    
+    checkTrue(all(test$important_col[test$Rec_Exp_date == "D1" & test$Sample_Name == "sample_1"] == 1))
+    checkTrue(all(test$important_col[test$Rec_Exp_date == "D2" & test$Sample_Name == "sample_1"] == 3))
+    checkTrue(all(test$important_col[test$Rec_Exp_date == "D1" & test$Sample_Name == "sample_3"] == 2))
+    
+    num.nas <- nrow(test) - sum((test$Rec_Exp_date== "D1" & test$Sample_Name == "sample_1") | (test$Rec_Exp_date == "D2" & test$Sample_Name == "sample_1") | (test$Rec_Exp_date == "D1" & test$Sample_Name == "sample_3"))
+    checkTrue(sum(is.na(test$important_col)) == num.nas)
+    
+    diff.cols <- setdiff(colnames(test), colnames(new.test)) 
+    
+    checkTrue(length(diff.cols) == 1 && diff.cols == "important_col")
 }

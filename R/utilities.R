@@ -109,7 +109,6 @@ add.labels.by.sample <- function(bux.db, sample.labels)
         basic.col <- "Sample_Name"
     }
     
-   
     dbGetQuery(bux.con, paste("CREATE TEMPORARY TABLE temp_table (", paste(paste(basic.col, "TEXT"), collapse=",") ,", ", all.labels,")"))
     
     ins.query <- paste("INSERT INTO temp_table VALUES (",paste(paste0(":", basic.col), collapse=",") ,", ",paste(paste0(":", label.cols), collapse=","),")")
