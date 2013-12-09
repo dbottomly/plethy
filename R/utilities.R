@@ -1,4 +1,215 @@
 
+
+
+
+#use.dta needs to be a data.frame with the columns Sample_Name and Days
+#main is the title of the plot
+#outer.group.name is the name of the column in use.dta which indicates the outermost group  (i.e. the group which is above the inner group in the hierarchy) or NULL
+#inner.group.name is the name of the column in use.dta which indicates the inner-most group (or only group).
+#outer.cols is a named character vector containing the colors to use for each level of the outer group
+#colorbrewer.pal needs a string indicating a Rcolorbrewer palatte.
+#plot.value is the column name of use.dta corresponding to the (numeric) data to be displayed on the heatmap
+
+#code adapted from the mtvsplot CRAN package: http://www.biostat.jhsph.edu/~rpeng/RR/mvtsplot/
+mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.name=NULL, inner.group.name=NULL, outer.cols=NULL, colorbrewer.pal="PRGn")
+{
+    
+    if (is.data.frame(use.dta) == FALSE || ncol(use.dta) < 3 || all(c('Sample_Name', 'Days') %in% colnames(use.dta)) == FALSE)
+    {
+        stop("ERROR: use.dta needs to be a data.frame with at least 3 columns, two of which need to be named Sample_Name and Days")
+    }
+    
+    if (length(plot.value) != 1 || is.character(plot.value) == FALSE || plot.value %in% colnames(use.dta) == FALSE || is.numeric(use.dta[,plot.value]) == FALSE)
+    {
+        stop("ERROR: plot.value needs to be a character vector of length 1 corresponding to a numeric column in use.dta")
+    }
+    
+    if (length(outer.group.name) != 1 || is.character(outer.group.name) == FALSE || outer.group.name %in% colnames(use.dta) == FALSE || (is.character(use.dta[,outer.group.name]) == FALSE && is.factor(use.dta[,outer.group.name]) == FALSE))
+    {
+        stop("ERROR: outer.group.name needs to a character vector of length one corresponding to a character or factor column in use.dta")
+    }
+    else if (is.character(use.dta[,outer.group.name]))
+    {
+        use.dta[,outer.group.name] <- factor(use.dta[,outer.group.name])
+    }
+    
+    if (length(inner.group.name) != 1 || is.character(inner.group.name) == FALSE || inner.group.name %in% colnames(use.dta) == FALSE || (is.character(use.dta[,inner.group.name]) == FALSE && is.factor(use.dta[,inner.group.name]) == FALSE))
+    {
+        stop("ERROR: inner.group.name needs to a character vector of length one corresponding to a character or factor column in use.dta")
+    }
+    else if (is.character(use.dta[,inner.group.name]))
+    {
+        use.dta[,inner.group.name] <- factor(use.dta[,inner.group.name])
+    }
+    
+    
+    if (length(outer.cols) != nlevels(use.dta[,outer.group.name]) || is.null(names(outer.cols)) || all(names(outer.cols) %in% levels(use.dta[,outer.group.name])) == FALSE || all(outer.cols %in% colors() == FALSE))
+    {
+        stop("ERROR: outer.cols needs to be a named character vector corresponding to levels in the outer.group.name column containing the names of colors")
+    }
+    
+    if (is.character(colorbrewer.pal) == FALSE || length(colorbrewer.pal) != 1 || colorbrewer.pal %in% rownames(RColorBrewer::brewer.pal.info) == FALSE)
+    {
+        stop("ERROR: colorbrewer.pal needs to be a single valid RColorBrewer palette.")
+    }
+    
+    pal.list <- rep(colorbrewer.pal, nlevels(use.dta[,outer.group.name]))
+    names(pal.list) <- levels(use.dta[,outer.group.name])
+    
+    mean.mat <- acast(formula=Days~Sample_Name, data=use.dta, value.var=plot.value)
+    
+    sample.cross <- use.dta[,c("Sample_Name", inner.group.name, outer.group.name)]
+    sample.cross <- sample.cross[!duplicated(sample.cross),]
+    rownames(sample.cross) <- as.character(sample.cross$Sample_Name)
+    
+    sample.cross <- sample.cross[colnames(mean.mat),]
+    
+    clear.ord <- do.call("order", sample.cross[,c(outer.group.name, inner.group.name)])
+    
+    mean.mat <- mean.mat[,clear.ord]
+    
+    sample.cross <- sample.cross[clear.ord,]
+    
+    outer.group <- sample.cross[,outer.group.name]
+    inner.group <- sample.cross[,inner.group.name]
+    
+    cx <- t(scale(t(mean.mat)))
+    
+    op <- par(no.readonly = TRUE)
+    on.exit(par(op))
+    par(las = 1, cex.axis = 0.6)
+    cn <- colnames(cx)
+    nc <- ncol(cx)
+    
+    utime <- 1:nrow(cx)
+    
+    use.layout.list <- lapply(seq(from=1, length.out=nlevels(outer.group), by=2), function(x)
+           {
+                return (c(rep(x, 6), x+1))
+           })
+    
+    use.layout <- do.call("rbind", use.layout.list)
+    use.layout <- rbind(use.layout, c(rep((nlevels(outer.group)*2)+1, 6), (nlevels(outer.group)*2)+2))
+  
+    layout(use.layout)
+    
+    colm.list <- lapply(levels(outer.group), function(x)
+                        {
+                            apply(mean.mat[,outer.group == x], 2, function(y) grDevices::boxplot.stats(y)$stats)
+                        })
+    
+    names(colm.list) <- levels(outer.group)
+    
+    right.xlim <- range(do.call("cbind", colm.list), na.rm = TRUE)
+   
+    side2 <- max(0.55, max(strwidth(cn, "inches")) + 0.1)
+    
+    for (i in levels(outer.group))
+    {
+        #c(bottom, left, top, right)
+        
+        bottom <- .05
+        
+        if (i == levels(outer.group)[1])
+        {
+            top <- .1
+        }
+        else
+        {
+            top <- 0
+        }
+        
+        par(mai = c(bottom, side2, top, 0.05))
+        cur.cx <- cx[,outer.group == i]
+        image(utime, seq_len(sum(outer.group == i)), cur.cx, col = RColorBrewer::brewer.pal(4, pal.list[i]), xlim = range(utime), 
+            xaxt = "n", yaxt = "n", ylab = "", xlab = "")
+        #axis(2, at = seq_len(nc), cn)
+        
+        usrpar <- par("usr")
+        par(usr = c(usrpar[1:2], 0, 1))
+        
+        cur.inner <- inner.group[outer.group == i]
+        
+        group.bounds <- lapply(levels(cur.inner), function(x) IRanges::end(IRanges::IRanges(IRanges::Rle(cur.inner == x))))
+        names(group.bounds) <- unique(cur.inner)
+        group.lines <- sort(as.numeric(unlist(group.bounds)))
+        last.line <- group.lines[length(group.lines)]
+        group.lines <- group.lines[-length(group.lines)]/length(cur.inner)
+        
+        abline(h = group.lines, lwd = 1, col = 1)
+        
+        for (j in names(group.bounds)){
+            for (k in group.bounds[[j]]){
+                dist.val <- k/(length(cur.inner))
+                half.dist <- dist.val - min(abs(dist.val - group.lines[group.lines != dist.val]))/2
+                mtext(text=j, side=2, at=half.dist, las=1, cex=.5, line=.5, col=outer.cols[i])
+            }
+            
+        }
+       
+        mtext(text=i, side=2, las=0, line=5, col=outer.cols[i])
+        #box(lwd=3)
+        
+        colm <- colm.list[[i]]
+        
+        par(mai = c(bottom, .05, top, .1))
+        
+        if (i == levels(outer.group)[nlevels(outer.group)])
+        {
+             plot(1:ncol(colm), type = "n", ylab = "", yaxt = "n",
+                xlab = "", xlim = right.xlim)
+        }
+        else
+        {
+            plot(1:ncol(colm), type = "n", ylab = "", yaxt = "n", xaxt = "n",
+                xlab = "", xlim = right.xlim)
+        }
+       
+        
+        usrpar <- par("usr")
+        par(usr = c(usrpar[1:2], 0, 1))
+        
+        ypos <- (1:ncol(colm) - 1/2)/ncol(colm)
+        
+        segments(colm[1, ], ypos, colm[2, ], ypos, col = outer.cols[i])
+        segments(colm[4, ], ypos, colm[5, ], ypos, col = outer.cols[i])
+        points(colm[3, ], ypos, pch = 19, cex = 0.6, col=outer.cols[i])
+        
+        abline(h = group.lines, lwd = 1, col = 1)
+    }
+    
+    all.meds <- sapply(levels(outer.group), function(x)
+                       {
+                            apply(mean.mat[,outer.group == x], 1, median, na.rm = TRUE)
+                       })
+    
+    bottom.ylim <- range(all.meds, na.rm = TRUE)
+    
+    par(mai = c(0.4, side2, 0.05, 0.05))
+    plot(utime, all.meds[,1], type = "l", ylim = bottom.ylim, xaxt = "n", 
+        xlab = "", ylab = "Median", col=outer.cols[colnames(all.meds)[1]])
+    
+    if (ncol(all.meds) > 1)
+    {
+        for (i in 2:ncol(all.meds))
+        {
+            lines(all.meds[,i], type="l", col=outer.cols[colnames(all.meds)[i]])
+        }
+
+    }
+    
+    
+    par(usr = c(c(0,nrow(all.meds)) , par("usr")[3:4]))
+    Axis(at=1:nrow(all.meds), labels=rownames(all.meds), side = 1)
+    
+    #as the above margins are too large, mainly as a placeholder...
+    par(mai = c(0.05, 0.05, 0.1, 0.1))
+    plot(0, 0, xlab = "", ylab = "", axes = FALSE, type = "n")
+    
+    text(0, 0, main)
+    
+}
+
 #functions to be used in conjunction with the summaryMeasures method
 time.to.max.response <- function(x, day.name)
 {

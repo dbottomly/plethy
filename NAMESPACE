@@ -9,7 +9,7 @@ importFrom(RSQLite, SQLite, sqliteQuickSQL)
 
 importMethodsFrom(RSQLite, dbGetPreparedQuery, dbBeginTransaction)
 
-importFrom(reshape2, melt)
+importFrom(reshape2, melt,acast)
 
 importFrom(plyr, ddply, summarize)
 

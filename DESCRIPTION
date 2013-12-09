@@ -6,7 +6,7 @@ Author: Daniel Bottomly, Marty Ferris
 Maintainer: Daniel Bottomly <bottomly@ohsu.edu>
 Imports: Streamer, DBI, RSQLite, methods, IRanges, reshape2, plyr, batch
 Depends: R (>= 3.0.0)
-Suggests: RUnit, BiocGenerics
+Suggests: RUnit, BiocGenerics,RColorBrewer
 Description: This package provides the infrastructure and tools to import, query
         and perform basic analysis of whole body plethysmography and metabolism
         data.  Currently support is limited to data derived from Buxco respirometry 

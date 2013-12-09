@@ -20,6 +20,16 @@ makeBuxcoDB <- function(db.name=NULL, annotation.table="Additional_labels")
     return(new("BuxcoDB", db.name=db.name, annotation.table=annotation.table))
 }
 
+#setGeneric("mvtsplot", def=function(obj,...) standardGeneric("mvtsplot"))
+#setMethod("mvtsplot", signature("BuxcoDB"), function(obj, Break_type_label="EXP", plot.value="Penh",main="", outer.group.name="Inf_Status", inner.group.name="Mating", outer.cols=c(Flu="black", SARS="brown", Mock="blue"), colorbrewer.pal="PRGn")
+#          {
+#                bux.dta <- retrieveData(obj, Break_type_label=Break_type_label, variables=plot.value)
+#    
+#                mean.dta <- ddply(bux.dta, .(Days, Sample_Name, Mating, Inf_Status), summarize, Penh=mean(log(Value)))
+#                
+#                mvtsplot.data.frame(use.dta=mean.dta, plot.value="Penh", main="RIX Penh", outer.group.name="Inf_Status", inner.group.name="Mating", outer.cols=c(Flu="black", SARS="brown", Mock="blue"),colorbrewer.pal="PRGn")
+#          })
+
 setGeneric("makeIndexes", def=function(obj,...) standardGeneric("makeIndexes"))
 setMethod("makeIndexes", signature("BuxcoDB"), function(obj, annotation.table=annoTable(obj))
           {
