@@ -6,5 +6,12 @@ SIGNIFICANT USER-VISIBLE CHANGES
 
 NEW FEATURES
 
-	o	Added 'get.labels.by.sample', 'get.err.breaks' and 'adjust.labels'
+	o	Added 'add.labels.by.sample', 'get.err.breaks' and 'adjust.labels'
 	 to assist with QA/QC of data.
+
+Changes in version 1.1.3:
+
+NEW FEATURES:
+
+	o	Added 'summaryMeasures' method.
+	o	Added experimental heatmap-like plotting functionality 'plethy:::mvtsplot'

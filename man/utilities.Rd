@@ -24,7 +24,7 @@ adjust.labels(bux.db, err.breaks.dta)
 An object of class \code{BuxcoDB}
 }
   \item{sample.labels}{
-A data.frame with a column named 'samples' with values corresponding to the sample names in the database. The other columns will be add to the annotation table and any sample not included in the data.frame will have their labels set to NULL.
+A data.frame with a column named 'samples' and optionally a column named 'phase' with values corresponding to the sample names and Phase values (e.g. recorded experimental timepoint) in the database. The other columns will be add to the annotation table and any sample not included in the data.frame will have their labels set to NULL.
 }
 
 \item{err.breaks.dta}{

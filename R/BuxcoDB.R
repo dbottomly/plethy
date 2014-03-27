@@ -20,12 +20,79 @@ makeBuxcoDB <- function(db.name=NULL, annotation.table="Additional_labels")
     return(new("BuxcoDB", db.name=db.name, annotation.table=annotation.table))
 }
 
+#setGeneric("mvtsplot", def=function(obj,...) standardGeneric("mvtsplot"))
+#setMethod("mvtsplot", signature("BuxcoDB"), function(obj, Break_type_label="EXP", plot.value="Penh",main="", outer.group.name="Inf_Status", inner.group.name="Mating", outer.cols=c(Flu="black", SARS="brown", Mock="blue"), colorbrewer.pal="PRGn")
+#          {
+#                bux.dta <- retrieveData(obj, Break_type_label=Break_type_label, variables=plot.value)
+#    
+#                mean.dta <- ddply(bux.dta, .(Days, Sample_Name, Mating, Inf_Status), summarize, Penh=mean(log(Value)))
+#                
+#                mvtsplot.data.frame(use.dta=mean.dta, plot.value="Penh", main="RIX Penh", outer.group.name="Inf_Status", inner.group.name="Mating", outer.cols=c(Flu="black", SARS="brown", Mock="blue"),colorbrewer.pal="PRGn")
+#          })
+
+setGeneric("makeIndexes", def=function(obj,...) standardGeneric("makeIndexes"))
+setMethod("makeIndexes", signature("BuxcoDB"), function(obj, annotation.table=annoTable(obj))
+          {
+            db.con <- dbConnect(SQLite(), dbName(obj))
+            
+            make.annotation.indexes(db.con, annotation.table)
+            
+            invisible(dbDisconnect(db.con))
+          })
+
 setMethod("show", signature("BuxcoDB"), function(object)
         {
             message("BuxcoDB object")
             message(paste("Database:", object@db.name))
             message(paste("Annotation Table:", object@annotation.table))
         })
+
+setGeneric("summaryMeasures", def=function(obj,...) standardGeneric("summaryMeasures"))
+setMethod("summaryMeasures", signature("BuxcoDB"), function(obj, summary.type=c("time.to.max.response", "max.response", "auc.response", "mean.response"), sample.summary.func=function(x) data.frame(Value=mean(x$Value)), samples=NULL, variables=NULL, tables=NULL, Break_type_label="EXP", day.summary.column="Days")
+          {
+                summaries <- match.arg(summary.type, several.ok=TRUE)
+                
+                if (is.function(sample.summary.func) == FALSE)
+                {
+                    stop("ERROR: sample.summary.func needs to be a valid function")
+                }
+                
+                ret.dta <- retrieveData(obj, samples=samples, variables=variables, tables=tables, Break_type_label=Break_type_label)
+                
+                if (day.summary.column %in% names(ret.dta) == FALSE || any(is.na(as.numeric(ret.dta[,day.summary.column]))))
+                {
+                    stop("ERROR: day.summary.column needs to be a valid name in the database and be coercible to numeric values")
+                }
+                
+                if ("Break_type_label" %in% names(ret.dta) == FALSE)
+                {
+                    stop("ERROR: Break_type_label needs to be part of the returned values for ret.dta")
+                }
+                
+                if (any(Break_type_label %in% ret.dta$Break_type_label) == FALSE)
+                {
+                    stop("ERROR: At least one type element of Break_type_label needs to exist in the current output")
+                }
+                
+                sum.days <- ddply(ret.dta, c("Variable_Name", "Sample_Name", day.summary.column), .fun=sample.summary.func)
+                #a hack because ddply can't find the functions if they are supplied as characters...
+                
+                ret.dta <- data.frame(Variable_Name=character(0), Sample_Name=character(), stringsAsFactors=FALSE)
+                
+                for (i in summaries)
+                {
+                    summary.func <- get(i)
+                    
+                    temp.dta <- ddply(sum.days, c("Variable_Name", "Sample_Name"), .fun=summary.func, day.name=day.summary.column)
+                    temp.dta$Variable_Name <- as.character(temp.dta$Variable_Name)
+                    temp.dta$Sample_Name <- as.character(temp.dta$Sample_Name)
+                    
+                    ret.dta <- merge(ret.dta, temp.dta, by=c("Variable_Name", "Sample_Name"), all=TRUE, incomparables=NA, sort=FALSE)
+                }
+                
+                return(ret.dta)
+                
+          })
 
 setGeneric("annoTable", def=function(obj,...) standardGeneric("annoTable"))
 setMethod("annoTable", signature("BuxcoDB"), function(obj)
@@ -44,11 +111,12 @@ setMethod("annoCols", signature("BuxcoDB"), function(obj)
                 }
                 else
                 {
-                    test.query <- dbGetQuery(db.con, paste("SELECT * FROM", annoTable(obj), "limit 5"))
+                    #modified this 9-03-2013 to deal with the case of columns added by user that had _ID, really only deal with the case of Break_Chunk_ID as the ID col...
+                    test.query <- dbListFields(db.con, annoTable(obj))
                     dbDisconnect(db.con)
-                    id.col <- names(test.query)[grep("_ID", names(test.query))]
+                    id.col <- test.query[test.query == "Break_Chunk_ID"]
                     stopifnot(length(id.col) == 1)
-                    lo.cols <- setdiff(names(test.query), id.col)
+                    lo.cols <- setdiff(test.query, id.col)
                     return(lo.cols)
                 }
           })
@@ -102,7 +170,7 @@ setMethod("tables", signature("BuxcoDB"), function(obj)
           })
 
 setGeneric("retrieveData", def=function(obj,...) standardGeneric("retrieveData"))
-setMethod("retrieveData", signature("BuxcoDB"), function(obj, samples=NULL, variables=NULL, tables=NULL,phase=NULL,debug=FALSE, ...)
+setMethod("retrieveData", signature("BuxcoDB"), function(obj, samples=NULL, variables=NULL, tables=NULL,phase=NULL,timepoint=NULL, debug=FALSE, ...)
           {
             
             supplied.args <- ls()
@@ -196,29 +264,42 @@ setMethod("addAnnotation", signature("BuxcoDB"), function(obj, query=NULL, index
                     temp.tab.1 <- paste(annoTable(obj), "temp1", sep="_")
                     temp.tab.2 <- paste(annoTable(obj), "temp2", sep="_")
                     
-                    query.list <- c(paste("CREATE TEMPORARY TABLE", temp.tab.1,"AS SELECT * FROM", annoTable(obj)),
-                                    paste("CREATE TEMPORARY TABLE", temp.tab.2, " AS", use.query), paste("DROP TABLE", annoTable(obj)),
+                    query.list <- paste("CREATE TEMPORARY TABLE", temp.tab.1,"AS SELECT * FROM", annoTable(obj))
+                    
+                    if (length(use.query) > 1)
+                    {
+                        query.list <- c(query.list, use.query[1:(length(use.query)-1)])
+                    }
+                    
+                    query.list <- c(query.list, paste("CREATE TEMPORARY TABLE", temp.tab.2, " AS", use.query[length(use.query)]), paste("DROP TABLE", annoTable(obj)),
                                        paste("CREATE TABLE ", annoTable(obj), "AS SELECT * FROM", temp.tab.1, "NATURAL JOIN", temp.tab.2),
                                        paste("DROP TABLE", temp.tab.1), paste("DROP TABLE", temp.tab.2))
-                    
                 }
                 else
                 {
                     #otherwise just create the table directly
-                    query.list <- paste("CREATE TABLE", annoTable(obj), "AS", use.query)
+                    
+                    if (length(use.query) > 1)
+                    {
+                        query.list <- c(use.query[1:(length(use.query)-1)], paste("CREATE TABLE", annoTable(obj), "AS", use.query[length(use.query)]))
+                    }
+                    else
+                    {
+                        query.list <- paste("CREATE TABLE", annoTable(obj), "AS", use.query[length(use.query)])
+                    }
+                    
                 }
-                final.query <- paste(query.list, sep=";")
-                if (debug==TRUE)
+                
+                for (i in query.list)
                 {
-                    message(final.query)
-                }
-                else
-                {
-                    for (i in query.list)
+                    if (debug==TRUE)
+                    {
+                        message(i)
+                    }
+                    else
                     {
                         stopifnot(is.null(dbGetQuery(db.con, i)))
                     }
-                    
                 }
                 
                 if (index==TRUE)
