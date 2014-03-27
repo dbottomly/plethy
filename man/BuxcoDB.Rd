@@ -22,6 +22,8 @@
 \alias{variables,BuxcoDB-method}
 \alias{variables}
 \alias{makeBuxcoDB}
+\alias{summaryMeasures}
+\alias{summaryMeasures,BuxcoDB-method}
 
 \title{Class \code{"BuxcoDB"}}
 \description{
@@ -47,6 +49,7 @@ Objects should be created by calls of the form \code{makeBuxcoDb(db.name=NULL, a
     \item{samples}{\code{signature(obj = "BuxcoDB")}: Returns a vector of the unique samples in the database}
     \item{tables}{\code{signature(obj = "BuxcoDB")}: Returns a vector of the unique tables in the database}
     \item{variables}{\code{signature(obj = "BuxcoDB")}: Returns a vector of the unique Buxco measurement variables in the database}
+    \item{summaryMeasures}{\code{signature(obj = "BuxcoDB"), summary.type=c("time.to.max.response", "max.response", "auc.response", "mean.response"), sample.summary.func=function(x) data.frame(Value=mean(x$Value)), samples=NULL, variables=NULL, tables=NULL, Break_type_label="EXP", day.summary.column="Days"}: Returns a data.frame containing a summaries of the variables for each sample with respect to the main time element specified in 'day.summary.column' after first summarizing each variable and timepoint for each sample by 'sample.summary.func'.  The data can be subsetted ahead of time using the samples, variables, tables and Break_type_label arguments.  Note this assumes that \code{break.type.query} was previously run using \code{addAnnotation}.}
 	 }
 }
 

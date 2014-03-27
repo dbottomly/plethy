@@ -17,6 +17,66 @@ add.breaks.to.tab <- plethy:::add.breaks.to.tab
 examine.table.lines <- plethy:::examine.table.lines
 sanity.check.time <- plethy:::sanity.check.time
 
+test.summaryMeasures <- function()
+{   
+    samples=rep(c(NA, "sample_1", NA, "sample_2"), 4)
+    count = rep(c(NA,150, NA,150), 4)
+    measure_break = c(c(FALSE, FALSE, TRUE, FALSE), rep(c(TRUE,FALSE, TRUE, FALSE), 3))
+    table_break = c(TRUE, rep(FALSE, length(samples)-1))
+    phase = c(rep(1, 4), rep(2, 4), rep(3,4), rep(4, 4))
+    
+    test.dta <- data.frame(samples=samples, count=count, measure_break=measure_break, table_break=table_break, phase=phase, stringsAsFactors=FALSE)
+    
+    sim.bux.lines <- plethy:::generate.sample.buxco(test.dta)
+    
+    temp.file <- tempfile()
+    temp.db.file <- tempfile()
+    write(sim.bux.lines, file=temp.file)
+    bux.db.1 <- parse.buxco(file.name=temp.file, db.name=temp.db.file, chunk.size=10000)
+    addAnnotation(bux.db.1, query=day.infer.query, index=FALSE)
+    addAnnotation(bux.db.1, query=break.type.query, index=TRUE)
+    
+    summary.type=c("time.to.max.response", "max.response", "auc.response", "mean.response")
+    
+    sums <- summaryMeasures(bux.db.1, summary.type=summary.type, sample.summary.func=function(x) data.frame(Value=mean(x$Value)), samples=NULL, variables=NULL, tables=NULL, Break_type_label="ERR", day.summary.column="Rec_Exp_date")
+    
+    checkTrue(length(intersect(colnames(sums),c("Variable_Name", "Sample_Name", summary.type))) == length(union(colnames(sums),c("Variable_Name", "Sample_Name", summary.type))))
+    
+    all.dta <- retrieveData(bux.db.1)
+    
+    day.mean.dta <- melt(with(all.dta, tapply(Value, list(Variable_Name, Sample_Name, Rec_Exp_date), mean)))
+    names(day.mean.dta) <- c("Variable_Name", "Sample_Name", "Rec_Exp_date", "Value")
+    
+    sums <- sums[do.call("order", sums[,1:2]),]
+    
+    mean.response <- melt(with(day.mean.dta, tapply(Value, list(Variable_Name, Sample_Name), mean)))
+    mean.response <- mean.response[do.call("order", mean.response[,1:2]),]
+    checkEquals(mean.response$value, sums$mean.response)
+    
+    time.to.max.response <- melt(as.table(by(day.mean.dta, day.mean.dta[,c("Variable_Name", "Sample_Name")], function(x) x$Rec_Exp_date[x$Value == max(x$Value)])))
+    time.to.max.response <- time.to.max.response[do.call("order", time.to.max.response[,1:2]),]
+    checkEquals(time.to.max.response$value, sums$time.to.max.response)
+    
+    max.response <- melt(with(day.mean.dta, tapply(Value, list(Variable_Name, Sample_Name), max)))
+    max.response <- max.response[do.call("order", max.response[,c(1:2)]),]
+    checkEquals(max.response$value, sums$max.response)
+    
+    #here first check the private function, then use it to check the sanity of sums
+    
+    #from Matthews et al. 1990 BMJ
+    
+    test.dta <- data.frame(Time=c(0,5,10,15,20,30,40,60,75,90,120), Value=c(0,8.3,21.6,33.9,35.5,47.2,38.3,20.5,13.3,0,0))
+    
+    checkTrue(as.numeric(plethy:::auc.response(test.dta, "Time")) == 2190)#close to the 2191 mentioned in the paper, maybe rounding errors...
+    
+    auc.response <- melt(as.table(by(day.mean.dta, day.mean.dta[,c("Variable_Name", "Sample_Name")], function(x) as.numeric(plethy:::auc.response(x, "Rec_Exp_date")))))
+    auc.response <- auc.response[do.call("order", auc.response[,1:2]),]
+    checkEquals(auc.response$value, sums$auc.response)
+    
+    checkException(summaryMeasures(bux.db.1, Break_type_label="ERR", day.summary.column="Days_2"))
+    checkException(summaryMeasures(bux.db.1, Break_type_label="EXP", day.summary.column="Rec_Exp_date"))
+    
+}
 
 test.examine.table.lines <- function()
 {
@@ -193,9 +253,13 @@ test.annoCols <- function()
 	addAnnotation(bux.db, query=day.infer.query)
 	addAnnotation(bux.db, query=break.type.query)
 	
+	#added this case to deal with bug occuring when a column as _ID was added
+	
+	addAnnotation(bux.db, query=function(x) paste("SELECT Break_Chunk_ID, 10 AS test_ID FROM", annoTable(x)))
+	
 	anno.col.succ <- annoCols(bux.db)
 	
-	checkIdentical(anno.col.succ, c("Days", "Break_type_label"))
+	checkIdentical(anno.col.succ, c("Days", "Break_type_label", "test_ID"))
 	
 	checkTrue(file.remove(local.samp.db))
 }
@@ -895,13 +959,13 @@ test.sanity.check.time <- function()
 {
     sec.vec.1 <- seq(1, 300, by=2)
     
-    test.sec.vec.1 <- sanity.check.time(sec.vec.1, 3600)
+    test.sec.vec.1 <- sanity.check.time(sec.vec.1, 3600, "sample1", 10)
     
     checkIdentical(sec.vec.1, test.sec.vec.1)
     
     sec.vec.2 <- c(seq(1, 300, by=2), seq(3601, 3900, by=2))
     
-    test.sec.vec.2 <- suppressWarnings(sanity.check.time(sec.vec.2, 3600))
+    test.sec.vec.2 <- suppressWarnings(sanity.check.time(sec.vec.2, 3600, "sample1", 10))
     
     checkIdentical(c(sec.vec.1, seq(0, 298, by=2)), test.sec.vec.2)
 }
@@ -960,24 +1024,7 @@ test.get.err.breaks <- function()
 }
 
 test.add.labels.by.sample <- function()
-{
-    samples=c(NA, "sample_1", NA, "sample_1", "sample_2", "sample_3")
-    count = c(NA,900, NA,150, 150, 110)
-    measure_break = c(FALSE, FALSE, TRUE, FALSE, FALSE,FALSE)
-    table_break = c(TRUE, rep(FALSE, length(samples)-1))
-    phase = rep("D1", length(samples))
-   
-    err.dta <- data.frame(samples=samples, count=count, measure_break=measure_break, table_break=table_break, phase=phase, stringsAsFactors=FALSE)
-    
-    sim.bux.lines <- plethy:::generate.sample.buxco(err.dta)
-    
-    temp.file <- tempfile()
-    temp.db.file <- tempfile()
-    write(sim.bux.lines, file=temp.file)
-    test.bux.db <- parse.buxco(file.name=temp.file, db.name=temp.db.file, chunk.size=10000)
-    addAnnotation(test.bux.db, query=day.infer.query, index=FALSE)
-    addAnnotation(test.bux.db, query=break.type.query, index=TRUE)
-    
+{   
     samp.file <- sample.db.path()
     new.file <- file.path(tempdir(), basename(samp.file))
 
@@ -1014,4 +1061,40 @@ test.add.labels.by.sample <- function()
     rownames(new.test) <- NULL
    
     checkEquals(test.orig, new.test)
+    
+    #also check that you can add info by phase as well...
+    
+    samples=c(NA, "sample_1", NA, "sample_1", "sample_2", NA, "sample_3", "sample_2", NA, "sample_3", "sample_1",NA, "sample_1", "sample_2", NA, "sample_2", "sample_3", NA, "sample_3")
+    count = c(NA,900, NA,150, 900, NA, 900, 150,NA, 150, 900,NA, 150, 900, NA, 150, 900, NA, 150)
+    measure_break = c(FALSE, FALSE, TRUE, FALSE, FALSE, TRUE,FALSE, FALSE,TRUE,FALSE, FALSE, TRUE,FALSE, FALSE, TRUE, FALSE, FALSE, TRUE, FALSE)
+    table_break = c(TRUE, rep(FALSE, length(samples)-1))
+    phase = c(rep("D1", 10), rep("D2", 9))
+   
+    err.dta <- data.frame(samples=samples, count=count, measure_break=measure_break, table_break=table_break, phase=phase, stringsAsFactors=FALSE)
+    
+    sim.bux.lines <- plethy:::generate.sample.buxco(err.dta)
+    
+    temp.file <- tempfile()
+    temp.db.file <- tempfile()
+    write(sim.bux.lines, file=temp.file)
+    test.bux.db <- parse.buxco(file.name=temp.file, db.name=temp.db.file, chunk.size=10000)
+    addAnnotation(test.bux.db, query=day.infer.query, index=FALSE)
+    addAnnotation(test.bux.db, query=break.type.query, index=FALSE)
+    
+    sample.labels <- data.frame(samples=c("sample_1", "sample_3", "sample_1"), phase=c("D1", "D1", "D2"), important_col=1:3, stringsAsFactors=FALSE)
+    
+    add.labels.by.sample(test.bux.db, sample.labels)
+    
+    test <- retrieveData(test.bux.db)
+    
+    checkTrue(all(test$important_col[test$Rec_Exp_date == "D1" & test$Sample_Name == "sample_1"] == 1))
+    checkTrue(all(test$important_col[test$Rec_Exp_date == "D2" & test$Sample_Name == "sample_1"] == 3))
+    checkTrue(all(test$important_col[test$Rec_Exp_date == "D1" & test$Sample_Name == "sample_3"] == 2))
+    
+    num.nas <- nrow(test) - sum((test$Rec_Exp_date== "D1" & test$Sample_Name == "sample_1") | (test$Rec_Exp_date == "D2" & test$Sample_Name == "sample_1") | (test$Rec_Exp_date == "D1" & test$Sample_Name == "sample_3"))
+    checkTrue(sum(is.na(test$important_col)) == num.nas)
+    
+    diff.cols <- setdiff(colnames(test), colnames(new.test)) 
+    
+    checkTrue(length(diff.cols) == 1 && diff.cols == "important_col")
 }

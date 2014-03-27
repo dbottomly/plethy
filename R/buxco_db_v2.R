@@ -42,8 +42,16 @@ break.type.query <- function(obj)
     table.with.date <- annoTable(obj)
     overall.case <- "CASE ((Break_number - Min_break) || Distinct_breaks) WHEN '02' THEN 'ACC' WHEN '12' THEN 'EXP' WHEN '01' THEN 'UNK' ELSE 'ERR' END"
     min.cat.query <- paste("(SELECT Sample_ID, Days, Bux_Table_ID, MIN(Break_number) AS Min_break, COUNT(DISTINCT(Break_number)) AS Distinct_breaks  FROM Chunk_Time JOIN ",table.with.date," USING (Break_Chunk_ID) GROUP BY Sample_ID, Days, Bux_table_ID)")
-    overall.query <- paste("SELECT Break_chunk_ID,", overall.case ,"AS Break_type_label FROM Chunk_Time JOIN ",table.with.date," USING (Break_Chunk_ID) JOIN", min.cat.query, " USING (Sample_ID, Days, Bux_table_ID)")
+    overall.query <- paste("SELECT Break_Chunk_ID,", overall.case ,"AS Break_type_label FROM Chunk_Time JOIN ",table.with.date," USING (Break_Chunk_ID) JOIN", min.cat.query, " USING (Sample_ID, Days, Bux_table_ID)")
     return(overall.query)
+}
+
+#A function that labels groups of samples based on their (first) timepoint assuming that that would indicate whether the animals were part of the same group of animals run at once. 
+chamber.inference.query <- function(obj)
+{
+    return(c("CREATE TEMPORARY TABLE min_time AS SELECT DISTINCT MIN(Time_ID) AS Min_time FROM Chunk_Time GROUP BY Sample_ID,Rec_Exp_date",
+            "CREATE TEMPORARY TABLE samp_sum AS SELECT Sample_ID, Rec_Exp_date, MIN(Time_ID) AS Min_time FROM Chunk_Time GROUP BY Sample_ID, Rec_Exp_date",
+           "SELECT Break_Chunk_ID, min_time.ROWID AS Chamber_group_ID FROM samp_sum JOIN min_time USING (Min_time) JOIN Chunk_Time USING (Sample_ID, Rec_Exp_date)"))
 }
 
 #A simple utility to ensure that the 'query.map' supplied to execute.query.map appears to be valid before attempting to process it.
@@ -619,7 +627,7 @@ write.sample.db <- function(db.con, dta.tab, ret.list, verbose)
         
         cur.samp.break$sec.from.start <- as.integer(difftime(time1=as.POSIXlt(cur.samp.break$posix.time), time2=min(as.POSIXlt(cur.samp.break$posix.time)), units="secs"))
         
-        cur.samp.break$sec.from.start <- sanity.check.time(cur.samp.break$sec.from.start, maxTime(ret.list)*60)
+        cur.samp.break$sec.from.start <- sanity.check.time(cur.samp.break$sec.from.start, maxTime(ret.list)*60, names(split.breaks)[j], unique(cur.samp.break$break.num))
         
         cur.samp.tab <- db.insert.autoinc(db.con, table.name="Sample", col.name="Sample_Name", values=names(split.breaks)[j], return.query.type="reverse")
         cur.time.tab <- db.insert.autoinc (db.con, table.name="Timepoint", col.name="P_Time", values=as.character(unique(cur.samp.break$posix.time)), return.query.type="reverse")
@@ -659,15 +667,15 @@ write.sample.db <- function(db.con, dta.tab, ret.list, verbose)
 
 #recursive helper function which checks whether the time intervals make sense with reguards to the expected time intervals and corrects them
 #if necessary, with a warning.
-sanity.check.time <- function(sec.vec, max.sec)
+sanity.check.time <- function(sec.vec, max.sec, sample, break.num)
 {
     which.gt <- sec.vec > max.sec
     
     if (sum(which.gt) > 0)
     {
-        warning("Found timepoints greater than maximum expected time length, computing relative to new minimum")
+        warning(paste("Found (",sum(which.gt),"/",length(which.gt),") timepoints greater than maximum expected time length for sample", sample, ", break.num:",break.num,", computing relative to new minimum"))
         sec.vec[which.gt] <- sec.vec[which.gt] - min(sec.vec[which.gt])
-        return(sanity.check.time(sec.vec, max.sec))
+        return(sanity.check.time(sec.vec, max.sec, sample, break.num))
     }
     else
     {

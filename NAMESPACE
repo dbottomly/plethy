@@ -3,6 +3,8 @@ importClassesFrom(Streamer, ReadLinesProducer)
 importMethodsFrom(Streamer, yield)
 importFrom(Streamer, ReadLinesProducer, close.ConnectionProducer)
 
+importFrom(RColorBrewer, brewer.pal, brewer.pal.info)
+
 importMethodsFrom(DBI, dbCommit, dbConnect, dbDisconnect, dbListTables,
 	dbListFields, dbGetQuery, dbWriteTable)
 
@@ -10,7 +12,9 @@ importFrom(RSQLite, SQLite, sqliteQuickSQL)
 
 importMethodsFrom(RSQLite, dbGetPreparedQuery, dbBeginTransaction)
 
-importFrom(reshape2, melt)
+importFrom(reshape2, melt,acast)
+
+importFrom(plyr, ddply, summarize)
 
 importFrom(batch, msplit)
 
@@ -20,7 +24,7 @@ importFrom(IRanges, as.data.frame, Rle, IRanges)
 
 exportClasses(BuxcoDB)
 export(makeBuxcoDB, annoTable, annoCols, annoLevels, dbName, samples, variables,
-	tables, retrieveData, addAnnotation, dbImport)
+	tables, retrieveData, addAnnotation, dbImport, summaryMeasures)
 
 export(day.infer.query, break.type.query, parse.buxco,parse.buxco.basic)
 
