@@ -48,7 +48,7 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
         stop("ERROR: outer.cols needs to be a named character vector corresponding to levels in the outer.group.name column containing the names of colors")
     }
     
-    if (is.character(colorbrewer.pal) == FALSE || length(colorbrewer.pal) != 1 || colorbrewer.pal %in% rownames(RColorBrewer::brewer.pal.info) == FALSE)
+    if (is.character(colorbrewer.pal) == FALSE || length(colorbrewer.pal) != 1 || colorbrewer.pal %in% rownames(brewer.pal.info) == FALSE)
     {
         stop("ERROR: colorbrewer.pal needs to be a single valid RColorBrewer palette.")
     }
@@ -121,7 +121,7 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
         
         par(mai = c(bottom, side2, top, 0.05))
         cur.cx <- cx[,outer.group == i]
-        image(utime, seq_len(sum(outer.group == i)), cur.cx, col = RColorBrewer::brewer.pal(4, pal.list[i]), xlim = range(utime), 
+        image(utime, seq_len(sum(outer.group == i)), cur.cx, col = brewer.pal(4, pal.list[i]), xlim = range(utime),
             xaxt = "n", yaxt = "n", ylab = "", xlab = "")
         #axis(2, at = seq_len(nc), cn)
         
