@@ -1,5 +1,24 @@
 
+retrieveMatrix <- function(bux.db,...,formula=Sample_Name~Days~Variable_Name, summary.func=function(x) mean(log(x)))
+{
+	if (is.function(summary.func)==F)
+	{
+		stop("summary.func needs to be a function taking a vector as an argument and returning a single value")
+	}
 
+	ret.dta <- retrieveData(bux.db,...)
+	
+	form.terms <- all.vars(attr(terms(formula), "variables"))
+	
+	if (class(formula) != "formula" || all(form.terms %in% names(ret.dta)))
+	{
+		stop("formula needs to refer to a valid formula involving columns as found using 'retrieveData'")
+	}
+	
+	temp.mat <- reshape2::acast(data=ret.dta, formula=formula, fun.aggregate=summary.func, value.var="Value")
+	temp.mat[is.nan(temp.mat)] <- NA
+	return(temp.mat)
+}
 
 
 #use.dta needs to be a data.frame with the columns Sample_Name and Days
