@@ -2,6 +2,7 @@
 \alias{add.labels.by.sample}
 \alias{get.err.breaks}
 \alias{adjust.labels}
+\alias{proc.sanity}
 
 \title{
 Utility functions to assist with QA/QC and analysis of plethysmography data
@@ -17,6 +18,7 @@ the original labels and moves the original labels to another column for future r
 add.labels.by.sample(bux.db, sample.labels)
 get.err.breaks(bux.db, max.exp.count=150, max.acc.count=900, vary.perc=.1, label.val="ERR")
 adjust.labels(bux.db, err.breaks.dta)
+proc.sanity(bux.db, max.exp.time=300, max.acc.time=1800, max.exp.count=150, max.acc.count=900)
 }
 
 \arguments{
@@ -29,6 +31,14 @@ A data.frame with a column named 'samples' and optionally a column named 'phase'
 
 \item{err.breaks.dta}{
 	A data.frame produced by \code{get.err.breaks} function.
+}
+
+\item{max.exp.time}{
+	The maximum time a given experimental run should take in seconds
+}
+
+\item{max.acc.time}{
+	The maximum time a given acclimation run should take in seconds
 }
 
 \item{max.exp.count}{
@@ -84,7 +94,15 @@ write(sim.bux.lines, file=temp.file)
 test.bux.db <- parse.buxco(file.name=temp.file, db.name=temp.db.file, chunk.size=10000)
 addAnnotation(test.bux.db, query=day.infer.query, index=FALSE)
 addAnnotation(test.bux.db, query=break.type.query, index=TRUE)
-	
+
+##quick test of data
+
+test <- proc.sanity(test.bux.db)
+
+head(test$count)
+
+test$time
+
 ##get a summary of this
 	
 unk.summary <- get.err.breaks(test.bux.db, label.val="UNK")

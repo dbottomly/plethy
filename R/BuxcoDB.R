@@ -20,6 +20,39 @@ makeBuxcoDB <- function(db.name=NULL, annotation.table="Additional_labels")
     return(new("BuxcoDB", db.name=db.name, annotation.table=annotation.table))
 }
 
+setGeneric("tsplot", def=function(obj,...) standardGeneric("tsplot"))
+setMethod("tsplot", signature("BuxcoDB"), function(obj, ..., exp.factor=NULL,  summary.func=function(x) mean(log(x)), legend.name="Factor", xlab="Days", ylab="mean(log(Value))")
+{
+    if (is.function(summary.func) == F)
+    {
+        stop("ERROR: summary.func needs to be a function that takes vector and returns a single value")
+    }
+    
+    if ((missing(legend.name) || (is.character(legend.name) && length(legend.name) == 1)) == F)
+    {
+        stop("ERROR: If legend.name is non-missing, it needs to be a single character value")
+    }
+    
+    if ((missing(xlab) || (is.character(xlab) && length(xlab) == 1)) == F)
+    {
+        stop("ERROR: If xlab is non-missing, it needs to be a single character value")
+    }
+    
+    if ((missing(ylab) || (is.character(ylab) && length(ylab) == 1)) == F)
+    {
+        stop("ERROR: If ylab is non-missing, it needs to be a single character value")
+    }
+    
+    use.dta <- retrieveData(obj, ...)
+        
+    if ((missing(exp.factor) || is.null(exp.factor) || (is.character(exp.factor) && length(exp.factor) == 1 && exp.factor %in% names(use.dta))) == F)
+    {
+        stop("ERROR: If exp.factor is specified, it needs to correspond to a column from 'retrieveData'")
+    }
+    
+    show(qplot(x=Days, y=Value, data=use.dta, group=Sample_Name, stat="summary", fun.y=summary.func, facets=.~Variable_Name, geom="line", xlab=xlab, ylab=ylab) + aes_string(color=exp.factor) + labs(color=legend.name))
+})
+
 #setGeneric("mvtsplot", def=function(obj,...) standardGeneric("mvtsplot"))
 #setMethod("mvtsplot", signature("BuxcoDB"), function(obj, Break_type_label="EXP", plot.value="Penh",main="", outer.group.name="Inf_Status", inner.group.name="Mating", outer.cols=c(Flu="black", SARS="brown", Mock="blue"), colorbrewer.pal="PRGn")
 #          {
@@ -93,6 +126,28 @@ setMethod("summaryMeasures", signature("BuxcoDB"), function(obj, summary.type=c(
                 return(ret.dta)
                 
           })
+
+setGeneric("retrieveMatrix", def=function(obj,...) standardGeneric("retrieveMatrix"))
+setMethod("retrieveMatrix", signature("BuxcoDB"), function(obj,...,formula=Sample_Name~Days~Variable_Name, summary.func=function(x) mean(log(x)))
+{
+	if (is.function(summary.func)==F)
+	{
+	    stop("summary.func needs to be a function taking a vector as an argument and returning a single value")
+	}
+
+	ret.dta <- retrieveData(obj,...)
+	
+	form.terms <- all.vars(attr(terms(formula), "variables"))
+	
+	if (class(formula) != "formula" || all(form.terms %in% names(ret.dta))==F)
+	{
+	    stop("formula needs to refer to a valid formula involving columns as found using 'retrieveData'")
+	}
+	
+	temp.mat <- acast(data=ret.dta, formula=formula, fun.aggregate=summary.func, value.var="Value")
+	temp.mat[is.nan(temp.mat)] <- NA
+	return(temp.mat)
+})
 
 setGeneric("annoTable", def=function(obj,...) standardGeneric("annoTable"))
 setMethod("annoTable", signature("BuxcoDB"), function(obj)

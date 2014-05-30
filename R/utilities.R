@@ -1,26 +1,4 @@
 
-retrieveMatrix <- function(bux.db,...,formula=Sample_Name~Days~Variable_Name, summary.func=function(x) mean(log(x)))
-{
-	if (is.function(summary.func)==F)
-	{
-		stop("summary.func needs to be a function taking a vector as an argument and returning a single value")
-	}
-
-	ret.dta <- retrieveData(bux.db,...)
-	
-	form.terms <- all.vars(attr(terms(formula), "variables"))
-	
-	if (class(formula) != "formula" || all(form.terms %in% names(ret.dta)))
-	{
-		stop("formula needs to refer to a valid formula involving columns as found using 'retrieveData'")
-	}
-	
-	temp.mat <- reshape2::acast(data=ret.dta, formula=formula, fun.aggregate=summary.func, value.var="Value")
-	temp.mat[is.nan(temp.mat)] <- NA
-	return(temp.mat)
-}
-
-
 #use.dta needs to be a data.frame with the columns Sample_Name and Days
 #main is the title of the plot
 #outer.group.name is the name of the column in use.dta which indicates the outermost group  (i.e. the group which is above the inner group in the hierarchy) or NULL
@@ -567,9 +545,24 @@ find.bux.breaks <- function(filename, burn.in.lines=c("Measurement", "Create mea
 #emits warnings if the resulting database looks outside of parameters and returns the queries as an invisble list of data.frames if the acutal output needs to be inspected.
 proc.sanity <- function(bux.db, max.exp.time=300, max.acc.time=1800, max.exp.count=150, max.acc.count=900)
 {
+    if (class(bux.db) != "BuxcoDB")
+    {
+        stop("ERROR: bux.db needs to be a 'BuxcoDB class'")
+    }
+    
+    if ((is.numeric(max.exp.time) && is.numeric(max.acc.time)) == F)
+    {
+        stop("max.exp.time and max.acc.time need to be numeric values")
+    }
+    
+    if ((is.numeric(max.exp.count) && is.numeric(max.acc.count)) ==F)
+    {
+        stop("max.exp.count and max.acc.count need to be numeric")
+    }
+    
     db.con <- dbConnect(SQLite(), dbName(bux.db))
     
-    time.dta <- dbGetQuery(db.con, "SELECT Break_type_label, MIN(Break_sec_start) AS min_seconds, MAX(Break_sec_start) AS max_seconds from Additional_labels NATURAL JOIN Chunk_Time GROUP BY Break_type_label;")
+    time.dta <- dbGetQuery(db.con, paste("SELECT Break_type_label, MIN(Break_sec_start) AS min_seconds, MAX(Break_sec_start) AS max_seconds from", annoTable(bux.db), "NATURAL JOIN Chunk_Time GROUP BY Break_type_label;"))
     
     looks.good <- TRUE
     

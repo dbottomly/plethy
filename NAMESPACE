@@ -16,20 +16,22 @@ importFrom(reshape2, melt,acast)
 
 importFrom(plyr, ddply, summarize)
 
-importFrom(batch, msplit)
+#importFrom(batch, msplit)
 
 importClassesFrom(IRanges, Rle, IRanges)
 
 importFrom(IRanges, as.data.frame, Rle, IRanges)
 
+importFrom(ggplot2, qplot, aes_string, labs)
+
 exportClasses(BuxcoDB)
 export(makeBuxcoDB, annoTable, annoCols, annoLevels, dbName, samples, variables,
-	tables, retrieveData, addAnnotation, dbImport, summaryMeasures)
+	tables, retrieveData, addAnnotation, dbImport, summaryMeasures, retrieveMatrix, tsplot)
 
 export(day.infer.query, break.type.query, parse.buxco,parse.buxco.basic)
 
 #utilities
-export(add.labels.by.sample, adjust.labels, get.err.breaks)
+export(add.labels.by.sample, adjust.labels, get.err.breaks, proc.sanity)
 
 #paths to sample data
 export(sample.db.path, buxco.sample.data.path)
