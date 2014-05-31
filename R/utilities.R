@@ -21,7 +21,12 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
         stop("ERROR: plot.value needs to be a character vector of length 1 corresponding to a numeric column in use.dta")
     }
     
-    if (length(outer.group.name) != 1 || is.character(outer.group.name) == FALSE || outer.group.name %in% colnames(use.dta) == FALSE || (is.character(use.dta[,outer.group.name]) == FALSE && is.factor(use.dta[,outer.group.name]) == FALSE))
+    if (missing(outer.group.name) || is.null(outer.group.name))
+    {
+        use.dta$temp_outer <- "temp"
+        outer.group.name <- "temp_outer"
+    }
+    else if (length(outer.group.name) != 1 || is.character(outer.group.name) == FALSE || outer.group.name %in% colnames(use.dta) == FALSE || (is.character(use.dta[,outer.group.name]) == FALSE && is.factor(use.dta[,outer.group.name]) == FALSE))
     {
         stop("ERROR: outer.group.name needs to a character vector of length one corresponding to a character or factor column in use.dta")
     }
@@ -30,6 +35,11 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
         use.dta[,outer.group.name] <- factor(use.dta[,outer.group.name])
     }
     
+    if (missing(inner.group.name) || is.null(inner.group.name))
+    {
+        use.dta$temp_inner <- "temp"
+        inner.group.name <- "temp_inner"
+    }
     if (length(inner.group.name) != 1 || is.character(inner.group.name) == FALSE || inner.group.name %in% colnames(use.dta) == FALSE || (is.character(use.dta[,inner.group.name]) == FALSE && is.factor(use.dta[,inner.group.name]) == FALSE))
     {
         stop("ERROR: inner.group.name needs to a character vector of length one corresponding to a character or factor column in use.dta")
@@ -39,8 +49,7 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
         use.dta[,inner.group.name] <- factor(use.dta[,inner.group.name])
     }
     
-    
-    if (length(outer.cols) != nlevels(use.dta[,outer.group.name]) || is.null(names(outer.cols)) || all(names(outer.cols) %in% levels(use.dta[,outer.group.name])) == FALSE || all(outer.cols %in% colors() == FALSE))
+    if (outer.group.name == "temp_outer" && (length(outer.cols) != nlevels(use.dta[,outer.group.name]) || is.null(names(outer.cols)) || all(names(outer.cols) %in% levels(use.dta[,outer.group.name])) == FALSE || all(outer.cols %in% colors() == FALSE)))
     {
         stop("ERROR: outer.cols needs to be a named character vector corresponding to levels in the outer.group.name column containing the names of colors")
     }
@@ -49,6 +58,9 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
     {
         stop("ERROR: colorbrewer.pal needs to be a single valid RColorBrewer palette.")
     }
+    
+    #5-31-2014
+    ##need to make sure the fix for when inner and/or outer works
     
     pal.list <- rep(colorbrewer.pal, nlevels(use.dta[,outer.group.name]))
     names(pal.list) <- levels(use.dta[,outer.group.name])

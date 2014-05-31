@@ -52,15 +52,26 @@ setMethod("tsplot", signature("BuxcoDB"), function(obj, ..., exp.factor=NULL,  s
     
     show(qplot(x=Days, y=Value, data=use.dta, group=Sample_Name, stat="summary", fun.y=summary.func, facets=.~Variable_Name, geom="line", xlab=xlab, ylab=ylab) + aes_string(color=exp.factor) + labs(color=legend.name))
 })
-
+#outer.cols=c(Flu="black", SARS="brown", Mock="blue")
 #setGeneric("mvtsplot", def=function(obj,...) standardGeneric("mvtsplot"))
-#setMethod("mvtsplot", signature("BuxcoDB"), function(obj, Break_type_label="EXP", plot.value="Penh",main="", outer.group.name="Inf_Status", inner.group.name="Mating", outer.cols=c(Flu="black", SARS="brown", Mock="blue"), colorbrewer.pal="PRGn")
+#setMethod("mvtsplot", signature("BuxcoDB"), function(obj,..., plot.value="Penh",main="Penh", summary.func=function(x) cbind(x, Value=mean(log(x$Value))), outer.group.name=NULL, inner.group.name=NULL, outer.cols=NULL, colorbrewer.pal="PRGn")
 #          {
-#                bux.dta <- retrieveData(obj, Break_type_label=Break_type_label, variables=plot.value)
+#            if ("Days" %in% annoCols(obj) == F)
+#            {
+#                stop("ERROR: The BuxcoDB object needs to contain a 'Days' column potentially created through the use of 'day.infer.query'")
+#            }
+#            
+#            if ((is.character(plot.value) && length(plot.value) == 1 && plot.value %in% variables(obj)) == F)
+#            {
+#                stop("ERROR: plot.value needs to be a single character value corresponding to a variable in 'obj'")
+#            }
+#            
+#            bux.dta <- retrieveData(obj, variables=plot.value,...)
 #    
-#                mean.dta <- ddply(bux.dta, .(Days, Sample_Name, Mating, Inf_Status), summarize, Penh=mean(log(Value)))
+#            mean.dta <- ddply(.data=bux.dta, .variables=c("Days", "Sample_Name", inner.group.name, outer.group.name), .fun=summary.func)
+#            names(mean.dta)[names(mean.dta) == "Value"] <- plot.value
 #                
-#                mvtsplot.data.frame(use.dta=mean.dta, plot.value="Penh", main="RIX Penh", outer.group.name="Inf_Status", inner.group.name="Mating", outer.cols=c(Flu="black", SARS="brown", Mock="blue"),colorbrewer.pal="PRGn")
+#            plethy:::mvtsplot.data.frame(use.dta=mean.dta, plot.value=plot.value, main=main, outer.group.name=outer.group.name, inner.group.name=innter.group.name, outer.cols=outer.cols,colorbrewer.pal=colorbrewer.pal)
 #          })
 
 setGeneric("makeIndexes", def=function(obj,...) standardGeneric("makeIndexes"))
