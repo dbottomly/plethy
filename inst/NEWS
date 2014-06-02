@@ -22,6 +22,7 @@ NEW FEATURES:
 
 	o	Added the 'retrieveMatrix' method
 	o	Added the 'tsplot' method
+	o	Added the 'mvtsplot' method	
 
 SIGNIFICANT USER VISIBLE CHANGES
 

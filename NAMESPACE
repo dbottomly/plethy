@@ -20,13 +20,13 @@ importFrom(plyr, ddply, summarize)
 
 importClassesFrom(IRanges, Rle, IRanges)
 
-importFrom(IRanges, as.data.frame, Rle, IRanges)
+importFrom(IRanges, as.data.frame, Rle, IRanges, end)
 
 importFrom(ggplot2, qplot, aes_string, labs)
 
 exportClasses(BuxcoDB)
 export(makeBuxcoDB, annoTable, annoCols, annoLevels, dbName, samples, variables,
-	tables, retrieveData, addAnnotation, dbImport, summaryMeasures, retrieveMatrix, tsplot)
+	tables, retrieveData, addAnnotation, dbImport, summaryMeasures, retrieveMatrix, tsplot, mvtsplot)
 
 export(day.infer.query, break.type.query, parse.buxco,parse.buxco.basic)
 

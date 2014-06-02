@@ -28,6 +28,8 @@
 \alias{retrieveMatrix}
 \alias{tsplot}
 \alias{tsplot,BuxcoDB-method}
+\alias{mvtsplot}
+\alias{mvtsplot,BuxcoDB-method}
 
 \title{Class \code{"BuxcoDB"}}
 \description{
@@ -55,6 +57,7 @@ Objects should be created by calls of the form \code{makeBuxcoDb(db.name=NULL, a
     \item{tables}{\code{signature(obj = "BuxcoDB")}: Returns a vector of the unique tables in the database}
     \item{variables}{\code{signature(obj = "BuxcoDB")}: Returns a vector of the unique Buxco measurement variables in the database}
     \item{tsplot}{\code{signature(obj = "BuxcoDB")}: Produces a line plot of the subset of the subset of the data as specified in 'retrieveData' after summarizing each sample for each timepoint by the function specified in 'summary.func'.  Colors and a legend can be added for a single experimental variable specified in 'exp.factor'.  The x,y and legend labels can be modified using the 'xlab', 'ylab' and 'legend.name' arguments respecitively.}
+    \item{mvtsplot}{\code{signature(obj = "BuxcoDB")}: Produces a multivariate timeseries plot adapted from the function in the 'mvtsplot' CRAN package.  By default it will produce a plot containing a heatmap like image for each sample centered and scaled by row along with a boxplot depicting the overall distribution of the variable specified in 'plot.value'.  At the bottom of the plot, a line plot shows the median trend over time. The data can also optionally be grouped as either an 'inner.group' or an 'outer.group'.  The 'inner.group.name' defaults at the sample name though it can be used to specify a group in its own right.  The 'outer.group.name' subdivides the plot visualy and the medians are computed over each group seperately.  Colors of the 'outer.group' can be changed by supplying a color vector to 'outer.col' named by the levels of 'outer.group.name'.  The colors used in the heatmap image can be influenced by supplying a different palette from RColorBrewer to 'colorbrewer.pal'. Note that the data is first summarized by sample and day using the function supplied to 'summary.func'.}
 	\item{summaryMeasures}{\code{signature(obj = "BuxcoDB"), summary.type=c("time.to.max.response", "max.response", "auc.response", "mean.response"), sample.summary.func=function(x) data.frame(Value=mean(x$Value)), samples=NULL, variables=NULL, tables=NULL, Break_type_label="EXP", day.summary.column="Days"}: Returns a data.frame containing a summaries of the variables for each sample with respect to the main time element specified in 'day.summary.column' after first summarizing each variable and timepoint for each sample by 'sample.summary.func'.  The data can be subsetted ahead of time using the samples, variables, tables and Break_type_label arguments.  Note this assumes that \code{break.type.query} was previously run using \code{addAnnotation}.}
 	 }
 }

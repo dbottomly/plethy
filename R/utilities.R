@@ -8,7 +8,9 @@
 #plot.value is the column name of use.dta corresponding to the (numeric) data to be displayed on the heatmap
 
 #code adapted from the mtvsplot CRAN package: http://www.biostat.jhsph.edu/~rpeng/RR/mvtsplot/
-mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.name=NULL, inner.group.name=NULL, outer.cols=NULL, colorbrewer.pal="PRGn")
+
+#outer.cols=c(Flu="black", SARS="brown", Mock="blue")
+mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main=plot.value, outer.group.name=NULL, inner.group.name=NULL, outer.cols=NULL, colorbrewer.pal="PRGn")
 {
     
     if (is.data.frame(use.dta) == FALSE || ncol(use.dta) < 3 || all(c('Sample_Name', 'Days') %in% colnames(use.dta)) == FALSE)
@@ -23,7 +25,7 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
     
     if (missing(outer.group.name) || is.null(outer.group.name))
     {
-        use.dta$temp_outer <- "temp"
+        use.dta$temp_outer <- factor("temp")
         outer.group.name <- "temp_outer"
     }
     else if (length(outer.group.name) != 1 || is.character(outer.group.name) == FALSE || outer.group.name %in% colnames(use.dta) == FALSE || (is.character(use.dta[,outer.group.name]) == FALSE && is.factor(use.dta[,outer.group.name]) == FALSE))
@@ -37,8 +39,8 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
     
     if (missing(inner.group.name) || is.null(inner.group.name))
     {
-        use.dta$temp_inner <- "temp"
-        inner.group.name <- "temp_inner"
+        use.dta$temp_inner <- factor("temp")
+        inner.group.name <- "Sample_Name"
     }
     if (length(inner.group.name) != 1 || is.character(inner.group.name) == FALSE || inner.group.name %in% colnames(use.dta) == FALSE || (is.character(use.dta[,inner.group.name]) == FALSE && is.factor(use.dta[,inner.group.name]) == FALSE))
     {
@@ -49,7 +51,11 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
         use.dta[,inner.group.name] <- factor(use.dta[,inner.group.name])
     }
     
-    if (outer.group.name == "temp_outer" && (length(outer.cols) != nlevels(use.dta[,outer.group.name]) || is.null(names(outer.cols)) || all(names(outer.cols) %in% levels(use.dta[,outer.group.name])) == FALSE || all(outer.cols %in% colors() == FALSE)))
+    if (outer.group.name == "temp_outer")
+    {
+        outer.cols <- c(temp="black")
+    }
+    else if ((length(outer.cols) != nlevels(use.dta[,outer.group.name]) || is.null(names(outer.cols)) || all(names(outer.cols) %in% levels(use.dta[,outer.group.name])) == FALSE || all(outer.cols %in% colors() == FALSE)))
     {
         stop("ERROR: outer.cols needs to be a named character vector corresponding to levels in the outer.group.name column containing the names of colors")
     }
@@ -59,11 +65,8 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
         stop("ERROR: colorbrewer.pal needs to be a single valid RColorBrewer palette.")
     }
     
-    #5-31-2014
-    ##need to make sure the fix for when inner and/or outer works
-    
-    pal.list <- rep(colorbrewer.pal, nlevels(use.dta[,outer.group.name]))
-    names(pal.list) <- levels(use.dta[,outer.group.name])
+    #pal.list <- rep(colorbrewer.pal, nlevels(use.dta[,outer.group.name]))
+    #names(pal.list) <- levels(use.dta[,outer.group.name])
     
     mean.mat <- acast(formula=Days~Sample_Name, data=use.dta, value.var=plot.value)
     
@@ -98,20 +101,29 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
            })
     
     use.layout <- do.call("rbind", use.layout.list)
+    
+    if (nrow(use.layout) == 1)
+    {
+        use.layout <- rbind(use.layout, use.layout, use.layout)
+    }
+    
     use.layout <- rbind(use.layout, c(rep((nlevels(outer.group)*2)+1, 6), (nlevels(outer.group)*2)+2))
   
     layout(use.layout)
     
     colm.list <- lapply(levels(outer.group), function(x)
                         {
-                            apply(mean.mat[,outer.group == x], 2, function(y) grDevices::boxplot.stats(y)$stats)
+                            apply(mean.mat[,outer.group == x], 2, boxplot, plot=F)
                         })
     
     names(colm.list) <- levels(outer.group)
     
-    right.xlim <- range(do.call("cbind", colm.list), na.rm = TRUE)
+    right.xlim <- range(do.call("cbind", lapply(unlist(colm.list, recursive=F), "[", "stats")), na.rm = TRUE)
    
-    side2 <- max(0.55, max(strwidth(cn, "inches")) + 0.1)
+    #side2 <- max(0.55, max(strwidth(cn, "inches")) + 0.1)
+    side2 <- max(strwidth(cn, "inches")) + .5
+    
+    use.heat.colors <- brewer.pal(4, colorbrewer.pal)
     
     for (i in levels(outer.group))
     {
@@ -122,42 +134,43 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
         if (i == levels(outer.group)[1])
         {
             top <- .1
-        }
-        else
+        }else
         {
             top <- 0
         }
         
         par(mai = c(bottom, side2, top, 0.05))
         cur.cx <- cx[,outer.group == i]
-        image(utime, seq_len(sum(outer.group == i)), cur.cx, col = brewer.pal(4, pal.list[i]), xlim = range(utime),
+        image(utime, seq_len(sum(outer.group == i)), cur.cx, col = use.heat.colors, xlim = range(utime),
             xaxt = "n", yaxt = "n", ylab = "", xlab = "")
         #axis(2, at = seq_len(nc), cn)
         
         usrpar <- par("usr")
         par(usr = c(usrpar[1:2], 0, 1))
         
-        cur.inner <- inner.group[outer.group == i]
+        cur.inner <- inner.group[outer.group == i, drop=T]
         
-        group.bounds <- lapply(levels(cur.inner), function(x) IRanges::end(IRanges::IRanges(IRanges::Rle(cur.inner == x))))
+        group.bounds <- lapply(levels(cur.inner), function(x) end(IRanges(Rle(cur.inner == x))))
         names(group.bounds) <- unique(cur.inner)
         group.lines <- sort(as.numeric(unlist(group.bounds)))
         last.line <- group.lines[length(group.lines)]
         group.lines <- group.lines[-length(group.lines)]/length(cur.inner)
         
-        abline(h = group.lines, lwd = 1, col = 1)
+        if (length(group.lines) > 0)
+        {
+            abline(h = group.lines, lwd = 1, col = 1)
         
-        for (j in names(group.bounds)){
-            for (k in group.bounds[[j]]){
-                dist.val <- k/(length(cur.inner))
-                half.dist <- dist.val - min(abs(dist.val - group.lines[group.lines != dist.val]))/2
-                mtext(text=j, side=2, at=half.dist, las=1, cex=.5, line=.5, col=outer.cols[i])
+            for (j in names(group.bounds)){
+                for (k in group.bounds[[j]]){
+                    dist.val <- k/(length(cur.inner))
+                    half.dist <- dist.val - min(abs(dist.val - group.lines[group.lines != dist.val]))/2
+                    mtext(text=j, side=2, at=half.dist, las=1, cex=.5, line=.5, col=outer.cols[i])
+                }
+                
             }
             
+            mtext(text=i, side=2, las=0, line=.5+(ceiling(max(nchar(cn))/2)), col=outer.cols[i])
         }
-       
-        mtext(text=i, side=2, las=0, line=5, col=outer.cols[i])
-        #box(lwd=3)
         
         colm <- colm.list[[i]]
         
@@ -165,24 +178,25 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
         
         if (i == levels(outer.group)[nlevels(outer.group)])
         {
-             plot(1:ncol(colm), type = "n", ylab = "", yaxt = "n",
+            plot(1:length(colm), type = "n", ylab = "", yaxt = "n",
                 xlab = "", xlim = right.xlim)
-        }
-        else
+        }else
         {
-            plot(1:ncol(colm), type = "n", ylab = "", yaxt = "n", xaxt = "n",
+            plot(1:length(colm), type = "n", ylab = "", yaxt = "n", xaxt = "n",
                 xlab = "", xlim = right.xlim)
         }
        
-        
         usrpar <- par("usr")
         par(usr = c(usrpar[1:2], 0, 1))
         
-        ypos <- (1:ncol(colm) - 1/2)/ncol(colm)
+        ypos <- (1:length(colm) - 1/2)/length(colm)
         
-        segments(colm[1, ], ypos, colm[2, ], ypos, col = outer.cols[i])
-        segments(colm[4, ], ypos, colm[5, ], ypos, col = outer.cols[i])
-        points(colm[3, ], ypos, pch = 19, cex = 0.6, col=outer.cols[i])
+        for (cur_el in 1:length(colm))
+        {
+            bxp(colm[[cur_el]], horizontal=T, at=ypos[cur_el],add=T, boxwex=.1, xaxt="n", yaxt="n")
+            #temporary...
+            #mtext(text=names(colm)[cur_el], side=2, at=ypos[cur_el], cex=.5)
+        }
         
         abline(h = group.lines, lwd = 1, col = 1)
     }
@@ -207,15 +221,15 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main="", outer.group.
 
     }
     
-    
     par(usr = c(c(0,nrow(all.meds)) , par("usr")[3:4]))
     Axis(at=1:nrow(all.meds), labels=rownames(all.meds), side = 1)
     
     #as the above margins are too large, mainly as a placeholder...
     par(mai = c(0.05, 0.05, 0.1, 0.1))
     plot(0, 0, xlab = "", ylab = "", axes = FALSE, type = "n")
-    
-    text(0, 0, main)
+    #maybe make a legend here
+    #text(0, 0, main)
+    legend("center", legend=rev(c("Low", "", "", "High")), fill=rev(use.heat.colors), title=main,y.intersp = .75)
     
 }
 
