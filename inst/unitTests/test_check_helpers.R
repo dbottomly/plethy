@@ -437,7 +437,7 @@ test.addAnnotation <- function()
 
 	break.time$inf.days <- as.numeric(round(difftime(break.time$P_Time, break.time$min.time, units="days")))
 
-	break.time.merge <- merge(break.time, labeled.days, by="Break_Chunk_ID", sort=FALSE, incomparables=NA)
+	break.time.merge <- merge(break.time, labeled.days, by="Break_Chunk_ID", sort=FALSE, incomparables=NULL)
 
 	checkIdentical(break.time.merge$inf.days, break.time.merge$Days)
 	
