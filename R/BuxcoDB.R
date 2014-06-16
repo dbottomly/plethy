@@ -20,15 +20,59 @@ makeBuxcoDB <- function(db.name=NULL, annotation.table="Additional_labels")
     return(new("BuxcoDB", db.name=db.name, annotation.table=annotation.table))
 }
 
-#setGeneric("mvtsplot", def=function(obj,...) standardGeneric("mvtsplot"))
-#setMethod("mvtsplot", signature("BuxcoDB"), function(obj, Break_type_label="EXP", plot.value="Penh",main="", outer.group.name="Inf_Status", inner.group.name="Mating", outer.cols=c(Flu="black", SARS="brown", Mock="blue"), colorbrewer.pal="PRGn")
-#          {
-#                bux.dta <- retrieveData(obj, Break_type_label=Break_type_label, variables=plot.value)
-#    
-#                mean.dta <- ddply(bux.dta, .(Days, Sample_Name, Mating, Inf_Status), summarize, Penh=mean(log(Value)))
-#                
-#                mvtsplot.data.frame(use.dta=mean.dta, plot.value="Penh", main="RIX Penh", outer.group.name="Inf_Status", inner.group.name="Mating", outer.cols=c(Flu="black", SARS="brown", Mock="blue"),colorbrewer.pal="PRGn")
-#          })
+setGeneric("tsplot", def=function(obj,...) standardGeneric("tsplot"))
+setMethod("tsplot", signature("BuxcoDB"), function(obj, ..., exp.factor=NULL,  summary.func=function(x) mean(log(x)), legend.name="Factor", xlab="Days", ylab="mean(log(Value))")
+{
+    if (is.function(summary.func) == F)
+    {
+        stop("ERROR: summary.func needs to be a function that takes vector and returns a single value")
+    }
+    
+    if ((missing(legend.name) || (is.character(legend.name) && length(legend.name) == 1)) == F)
+    {
+        stop("ERROR: If legend.name is non-missing, it needs to be a single character value")
+    }
+    
+    if ((missing(xlab) || (is.character(xlab) && length(xlab) == 1)) == F)
+    {
+        stop("ERROR: If xlab is non-missing, it needs to be a single character value")
+    }
+    
+    if ((missing(ylab) || (is.character(ylab) && length(ylab) == 1)) == F)
+    {
+        stop("ERROR: If ylab is non-missing, it needs to be a single character value")
+    }
+    
+    use.dta <- retrieveData(obj, ...)
+        
+    if ((missing(exp.factor) || is.null(exp.factor) || (is.character(exp.factor) && length(exp.factor) == 1 && exp.factor %in% names(use.dta))) == F)
+    {
+        stop("ERROR: If exp.factor is specified, it needs to correspond to a column from 'retrieveData'")
+    }
+    
+    show(qplot(x=Days, y=Value, data=use.dta, group=Sample_Name, stat="summary", fun.y=summary.func, facets=.~Variable_Name, geom="line", xlab=xlab, ylab=ylab) + aes_string(color=exp.factor) + labs(color=legend.name))
+})
+
+setGeneric("mvtsplot", def=function(obj,...) standardGeneric("mvtsplot"))
+setMethod("mvtsplot", signature("BuxcoDB"), function(obj,..., plot.value="Penh",main=plot.value, summary.func=function(x) data.frame(Value=mean(log(x$Value))), outer.group.name=NULL, inner.group.name=NULL, outer.cols=NULL, colorbrewer.pal="PRGn")
+          {
+            if ("Days" %in% annoCols(obj) == F)
+            {
+                stop("ERROR: The BuxcoDB object needs to contain a 'Days' column potentially created through the use of 'day.infer.query'")
+            }
+            
+            if ((is.character(plot.value) && length(plot.value) == 1 && plot.value %in% variables(obj)) == F)
+            {
+                stop("ERROR: plot.value needs to be a single character value corresponding to a variable in 'obj'")
+            }
+            
+            bux.dta <- retrieveData(obj, variables=plot.value,...)
+    
+            mean.dta <- ddply(.data=bux.dta, .variables=c("Days", "Sample_Name", inner.group.name, outer.group.name), .fun=summary.func)
+            names(mean.dta)[names(mean.dta) == "Value"] <- plot.value
+                
+            mvtsplot.data.frame(use.dta=mean.dta, plot.value=plot.value, main=main, outer.group.name=outer.group.name, inner.group.name=inner.group.name, outer.cols=outer.cols,colorbrewer.pal=colorbrewer.pal)
+          })
 
 setGeneric("makeIndexes", def=function(obj,...) standardGeneric("makeIndexes"))
 setMethod("makeIndexes", signature("BuxcoDB"), function(obj, annotation.table=annoTable(obj))
@@ -87,12 +131,34 @@ setMethod("summaryMeasures", signature("BuxcoDB"), function(obj, summary.type=c(
                     temp.dta$Variable_Name <- as.character(temp.dta$Variable_Name)
                     temp.dta$Sample_Name <- as.character(temp.dta$Sample_Name)
                     
-                    ret.dta <- merge(ret.dta, temp.dta, by=c("Variable_Name", "Sample_Name"), all=TRUE, incomparables=NA, sort=FALSE)
+                    ret.dta <- merge(ret.dta, temp.dta, by=c("Variable_Name", "Sample_Name"), all=TRUE, incomparables=NULL, sort=FALSE)
                 }
                 
                 return(ret.dta)
                 
           })
+
+setGeneric("retrieveMatrix", def=function(obj,...) standardGeneric("retrieveMatrix"))
+setMethod("retrieveMatrix", signature("BuxcoDB"), function(obj,...,formula=Sample_Name~Days~Variable_Name, summary.func=function(x) mean(log(x)))
+{
+	if (is.function(summary.func)==F)
+	{
+	    stop("summary.func needs to be a function taking a vector as an argument and returning a single value")
+	}
+
+	ret.dta <- retrieveData(obj,...)
+	
+	form.terms <- all.vars(attr(terms(formula), "variables"))
+	
+	if (class(formula) != "formula" || all(form.terms %in% names(ret.dta))==F)
+	{
+	    stop("formula needs to refer to a valid formula involving columns as found using 'retrieveData'")
+	}
+	
+	temp.mat <- acast(data=ret.dta, formula=formula, fun.aggregate=summary.func, value.var="Value")
+	temp.mat[is.nan(temp.mat)] <- NA
+	return(temp.mat)
+})
 
 setGeneric("annoTable", def=function(obj,...) standardGeneric("annoTable"))
 setMethod("annoTable", signature("BuxcoDB"), function(obj)
@@ -401,7 +467,7 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
             rev.query <- db.insert.autoinc(db.con=db.con, table.name=i, col.name=cur.schema$record.vars, values=unique(bux.dta[,cur.schema$record.vars]),
                                             return.query.type="reverse", debug=debug)
                                         
-            bux.dta <- merge(bux.dta, rev.query, all=TRUE, incomparables=NA, sort=FALSE)
+            bux.dta <- merge(bux.dta, rev.query, all=TRUE, incomparables=NULL, sort=FALSE)
         }
         else
         {
@@ -421,7 +487,7 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
             dbBeginTransaction(db.con)
             dbGetPreparedQuery(db.con, use.sql, bind.data = temp.dta)
             dbCommit(db.con)
-            bux.dta <- merge(bux.dta, dbGetQuery(db.con, paste("SELECT * FROM", i, "WHERE", cur.schema$primary.key, ">", prev.max.primary)), all=TRUE, incomparables=NA, sort=FALSE)
+            bux.dta <- merge(bux.dta, dbGetQuery(db.con, paste("SELECT * FROM", i, "WHERE", cur.schema$primary.key, ">", prev.max.primary)), all=TRUE, incomparables=NULL, sort=FALSE)
             
         }
         
