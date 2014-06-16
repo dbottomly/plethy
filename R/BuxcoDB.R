@@ -131,7 +131,7 @@ setMethod("summaryMeasures", signature("BuxcoDB"), function(obj, summary.type=c(
                     temp.dta$Variable_Name <- as.character(temp.dta$Variable_Name)
                     temp.dta$Sample_Name <- as.character(temp.dta$Sample_Name)
                     
-                    ret.dta <- merge(ret.dta, temp.dta, by=c("Variable_Name", "Sample_Name"), all=TRUE, incomparables=NA, sort=FALSE)
+                    ret.dta <- merge(ret.dta, temp.dta, by=c("Variable_Name", "Sample_Name"), all=TRUE, incomparables=NULL, sort=FALSE)
                 }
                 
                 return(ret.dta)
@@ -467,7 +467,7 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
             rev.query <- db.insert.autoinc(db.con=db.con, table.name=i, col.name=cur.schema$record.vars, values=unique(bux.dta[,cur.schema$record.vars]),
                                             return.query.type="reverse", debug=debug)
                                         
-            bux.dta <- merge(bux.dta, rev.query, all=TRUE, incomparables=NA, sort=FALSE)
+            bux.dta <- merge(bux.dta, rev.query, all=TRUE, incomparables=NULL, sort=FALSE)
         }
         else
         {
@@ -487,7 +487,7 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
             dbBeginTransaction(db.con)
             dbGetPreparedQuery(db.con, use.sql, bind.data = temp.dta)
             dbCommit(db.con)
-            bux.dta <- merge(bux.dta, dbGetQuery(db.con, paste("SELECT * FROM", i, "WHERE", cur.schema$primary.key, ">", prev.max.primary)), all=TRUE, incomparables=NA, sort=FALSE)
+            bux.dta <- merge(bux.dta, dbGetQuery(db.con, paste("SELECT * FROM", i, "WHERE", cur.schema$primary.key, ">", prev.max.primary)), all=TRUE, incomparables=NULL, sort=FALSE)
             
         }
         

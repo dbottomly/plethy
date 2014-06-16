@@ -727,7 +727,7 @@ get.tab.ids <- function(use.dta, merge.list, merge.dta.column.pat="_Name")
             stop("ERROR: the pattern specified in merge.dta.column.pat did not uniquely identify an element of merge.dta")
         }
         
-        use.dta <- merge(use.dta, cur.merge$merge.dta, by.x=cur.merge$merge.name, by.y=merge.dta.name, all.x=TRUE, all.y=FALSE, incomparables=NA, sort=FALSE)
+        use.dta <- merge(use.dta, cur.merge$merge.dta, by.x=cur.merge$merge.name, by.y=merge.dta.name, all.x=TRUE, all.y=FALSE, incomparables=NULL, sort=FALSE)
     }
     
     return(use.dta)
