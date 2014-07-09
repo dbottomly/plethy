@@ -1,4 +1,6 @@
 import(methods)
+import(BiocGenerics)
+import(S4Vectors)
 importClassesFrom(Streamer, ReadLinesProducer)
 importMethodsFrom(Streamer, yield)
 importFrom(Streamer, ReadLinesProducer, close.ConnectionProducer)
@@ -18,9 +20,9 @@ importFrom(plyr, ddply, summarize)
 
 #importFrom(batch, msplit)
 
-importClassesFrom(IRanges, Rle, IRanges)
+importClassesFrom(IRanges, IRanges)
 
-importFrom(IRanges, as.data.frame, Rle, IRanges, end)
+importFrom(IRanges, as.data.frame, IRanges, end)
 
 importFrom(ggplot2, qplot, aes_string, labs)
 
