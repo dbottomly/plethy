@@ -10,7 +10,7 @@ importFrom(RColorBrewer, brewer.pal, brewer.pal.info)
 importMethodsFrom(DBI, dbCommit, dbConnect, dbDisconnect, dbListTables,
 	dbListFields, dbGetQuery, dbWriteTable)
 
-importFrom(RSQLite, SQLite, sqliteQuickSQL)
+importFrom(RSQLite, SQLite)
 
 importMethodsFrom(RSQLite, dbGetPreparedQuery, dbBeginTransaction)
 
