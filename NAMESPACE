@@ -12,7 +12,7 @@ importMethodsFrom(DBI, dbCommit, dbConnect, dbDisconnect, dbListTables,
 
 importFrom(RSQLite, SQLite)
 
-importMethodsFrom(RSQLite, dbGetPreparedQuery, dbBeginTransaction)
+importMethodsFrom(RSQLite, dbGetPreparedQuery, dbBegin)
 
 importFrom(reshape2, melt,acast)
 
