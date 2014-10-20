@@ -1,12 +1,12 @@
 Package: plethy
-Version: 1.5.0
+Version: 1.5.1
 Date: 2013-4-26
 Title: R framework for exploration and analysis of respirometry data
 Author: Daniel Bottomly, Marty Ferris
 Maintainer: Daniel Bottomly <bottomly@ohsu.edu>
-Imports: Streamer, DBI, RSQLite, IRanges, reshape2, plyr, RColorBrewer,ggplot2
+Imports: Streamer, DBI, RSQLite (>= 1.0.0), IRanges, reshape2, plyr, RColorBrewer,ggplot2
 Depends: R (>= 3.1.0), methods, BiocGenerics, S4Vectors
-Suggests: RUnit, BiocGenerics, BiocStyle
+Suggests: RUnit, BiocStyle
 Description: This package provides the infrastructure and tools to import, query
         and perform basic analysis of whole body plethysmography and metabolism
         data.  Currently support is limited to data derived from Buxco respirometry 

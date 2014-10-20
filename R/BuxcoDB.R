@@ -484,7 +484,7 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
             
             if (is.na(prev.max.primary)) prev.max.primary <- 0
             
-            dbBeginTransaction(db.con)
+            dbBegin(db.con)
             dbGetPreparedQuery(db.con, use.sql, bind.data = temp.dta)
             dbCommit(db.con)
             bux.dta <- merge(bux.dta, dbGetQuery(db.con, paste("SELECT * FROM", i, "WHERE", cur.schema$primary.key, ">", prev.max.primary)), all=TRUE, incomparables=NULL, sort=FALSE)
@@ -530,7 +530,7 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
             }
             
             use.sql <- paste("INSERT INTO", annot.tab, "(", paste(colnames(temp.dta), collapse=",") ,")","VALUES (", paste(paste("$", colnames(temp.dta), sep=""), collapse=",") ,")")
-            dbBeginTransaction(db.con)
+            dbBegin(db.con)
             dbGetPreparedQuery(db.con, use.sql, bind.data = temp.dta)
             dbCommit(db.con)
             
