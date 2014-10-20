@@ -350,7 +350,7 @@ add.labels.by.sample <- function(bux.db, sample.labels)
     names(sample.labels)[names(sample.labels) == "samples"] <- "Sample_Name"
     names(sample.labels)[names(sample.labels) == "phase"] <- "Rec_Exp_date"
     
-    dbBeginTransaction(bux.con)
+    dbBegin(bux.con)
     dbGetPreparedQuery(bux.con, ins.query, sample.labels)
     dbCommit(bux.con)
 
@@ -396,7 +396,7 @@ adjust.labels <- function(bux.db, err.breaks.dta)
     
     ins.query <- paste("INSERT INTO temp_table VALUES (:Sample_Name, :Variable_Name, :Rec_Exp_date, :Break_number, :inferred_labs)")
     
-    dbBeginTransaction(bux.con)
+    dbBegin(bux.con)
     dbGetPreparedQuery(bux.con, ins.query, err.breaks.dta)
     dbCommit(bux.con)
 

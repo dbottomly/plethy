@@ -87,7 +87,7 @@ test.examine.table.lines <- function()
 	file.remove("unit_test_extabl.db")
     }
 	
-    test.con <- dbConnect("SQLite", "unit_test_extabl.db")
+    test.con <- dbConnect(SQLite(), "unit_test_extabl.db")
     
     plethy:::create.tables(test.con)
     
@@ -124,7 +124,7 @@ test.examine.table.lines <- function()
     
     #tests for empty tables at the end, below simulates the final chunk being processed before completion
 	
-    test.con <- dbConnect("SQLite", "unit_test_extabl.db")
+    test.con <- dbConnect(SQLite(), "unit_test_extabl.db")
     
     plethy:::create.tables(test.con)
     
@@ -298,7 +298,17 @@ natural.join.tables <- function(db.con)
 	{
 	    if (i != "sqlite_sequence")
 	    {
-		temp.tab <- dbReadTable(db.con, i, stringsAsFactors=FALSE)
+		temp.tab <- dbReadTable(db.con, i)
+		
+		for (i in colnames(temp.tab))
+		{
+		    if (class(temp.tab[,i]) == "factor")
+		    {
+			temp.tab[,i] <- as.character(temp.tab[,i])
+		    }
+		    
+		}
+		
 		if (nrow(all.tab) == 0)
 		{
 			all.tab <- temp.tab
@@ -324,7 +334,7 @@ test.retrieveData <- function()
 	
 	bux.db <- makeBuxcoDB(local.samp.db)
 	
-	db.con <- dbConnect("SQLite", dbName(bux.db))
+	db.con <- dbConnect(SQLite(), dbName(bux.db))
 	
 	all.tab <- natural.join.tables(db.con)
 	
@@ -423,7 +433,7 @@ test.addAnnotation <- function()
 	
 	addAnnotation(bux.db, query=day.infer.query)
 	
-	db.con <- dbConnect("SQLite", dbName(bux.db))
+	db.con <- dbConnect(SQLite(), dbName(bux.db))
 	
 	checkTrue(annoTable(bux.db) %in% dbListTables(db.con))
 	
@@ -464,7 +474,7 @@ test.addAnnotation <- function()
 	addAnnotation(bux.db, query=day.infer.query, index=TRUE)
 	addAnnotation(bux.db, query=break.type.query, index=TRUE)
 	
-	db.con <- dbConnect("SQLite", dbName(bux.db))
+	db.con <- dbConnect(SQLite(), dbName(bux.db))
 	all.annots.ind <- dbGetQuery(db.con, paste("select * from", annoTable(bux.db)))
 	
 	checkTrue(all(names(all.annots.ind) == c("Break_Chunk_ID", "Days", "Break_type_label")))
@@ -477,7 +487,7 @@ test.addAnnotation <- function()
 
 test.get.simple.single.col.query <- function()
 {
-	test.con <- dbConnect("SQLite", "test.db")
+	test.con <- dbConnect(SQLite(), "test.db")
 	
 	dbWriteTable(test.con, "letts", data.frame(index=1:10, letts_Name=letters[1:10]), row.names=FALSE)
 
@@ -718,7 +728,7 @@ test.write.sample.db <- function()
 		file.remove("unit_test_writedb.db")
 	}
 	
-	test.con <- dbConnect("SQLite", "unit_test_writedb.db")
+	test.con <- dbConnect(SQLite(), "unit_test_writedb.db")
 	
 	sub.tab <- "CREATE TABLE IF NOT EXISTS Sample (Sample_ID INTEGER CONSTRAINT Samp_pk PRIMARY KEY AUTOINCREMENT,
                     Sample_Name TEXT CONSTRAINT Samp_name UNIQUE)"
@@ -845,7 +855,7 @@ test.db.insert.autoincrement <- function()
 		file.remove("unit_test_auto_inc.db")
 	}
 	
-	test.con <- dbConnect("SQLite", "unit_test_auto_inc.db")
+	test.con <- dbConnect(SQLite(), "unit_test_auto_inc.db")
 	
 	sub.tab <- "CREATE TABLE IF NOT EXISTS Sample (Sample_ID INTEGER CONSTRAINT Samp_pk PRIMARY KEY AUTOINCREMENT,
                     Sample_Name TEXT CONSTRAINT Samp_name UNIQUE)"

@@ -643,7 +643,7 @@ write.sample.db <- function(db.con, dta.tab, ret.list, verbose)
         
         data.query <- paste("INSERT INTO Data VALUES (", paste(paste0(":", names(data.tab)), collapse=","), ")")
         
-        dbBeginTransaction(db.con)
+        dbBegin(db.con)
         dbGetPreparedQuery(db.con, data.query, bind.data = data.tab)
 	dbCommit(db.con)
         
@@ -655,7 +655,7 @@ write.sample.db <- function(db.con, dta.tab, ret.list, verbose)
         
         chunk.query <- paste("INSERT INTO Chunk_Time VALUES (", paste(paste0(":", names(chunk.tab)), collapse=","), ")")
         
-        dbBeginTransaction(db.con)
+        dbBegin(db.con)
         dbGetPreparedQuery(db.con, chunk.query, bind.data = chunk.tab)
 	dbCommit(db.con)
         
@@ -766,7 +766,7 @@ db.insert.autoinc <- function(db.con, table.name, col.name, values, return.query
     names(ins.dta) <- c("prim_key", col.name)
     
     query <- paste0("INSERT OR IGNORE INTO ", table.name, " VALUES (:prim_key, :",col.name,")")
-    dbBeginTransaction(db.con)
+    dbBegin(db.con)
     dbGetPreparedQuery(db.con, query, bind.data = ins.dta)
     dbCommit(db.con)
     
