@@ -1,7 +1,7 @@
 #plethy
 
 
-Analysis of whole body plethysmography data in R.
+Analysis of whole body plethysmography data in R. [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.12570.png)](http://dx.doi.org/10.5281/zenodo.12570)
 
 ####INSTALLATION
 
@@ -10,14 +10,13 @@ A stable version is best obtained through Bioconductor:
 source("http://bioconductor.org/biocLite.R")  
 biocLite("plethy")
 
-The plethy package is part of Bioconductor 2.13 which is now the release version so use of R-3.02 is required
-for that version.
+The plethy package was first part of Bioconductor 2.13.
 
 Any new features, refactoring, or bug fixes will be applied here first so those interesting in the latest
 experimental version can install from here using the devtools package after first installing the dependencies:
 
 source("http://bioconductor.org/biocLite.R")  
-biocLite(c("RSQLite", "batch", "IRanges", "reshape2", "Streamer", "plyr"))  
+biocLite(c("RSQLite", "IRanges", "reshape2", "Streamer", "plyr"))  
 install_github(username="dbottomly", repo="plethy", ref="master")
 
 The package can also be installed manually by first clicking 'Download ZIP' and unzipping the resulting 'plethy-master.zip'
