@@ -2,8 +2,10 @@ Package: plethy
 Version: 1.5.1
 Date: 2013-4-26
 Title: R framework for exploration and analysis of respirometry data
-Author: Daniel Bottomly, Marty Ferris
-Maintainer: Daniel Bottomly <bottomly@ohsu.edu>
+Authors@R: c(person("Daniel", "Bottomly", role=c("aut", "cre"), email="bottomly@ohsu.edu"),
+	person("Marty", "Ferris", role="ctb"),
+	person("Beth", "Wilmot", role="aut"),
+	person("Shannon", "McWeeney", role="aut"))
 Imports: Streamer, DBI, RSQLite (>= 1.0.0), IRanges, reshape2, plyr, RColorBrewer,ggplot2
 Depends: R (>= 3.1.0), methods, BiocGenerics, S4Vectors
 Suggests: RUnit, BiocStyle
