@@ -365,6 +365,10 @@ add.labels.by.sample <- function(bux.db, sample.labels)
     dbGetQuery(bux.con, paste("DROP TABLE temp_table"))
     dbGetQuery(bux.con, paste("DROP TABLE temp_table_2"))
     
+    #as this destroys the annotTable, should rebuild the indexes
+    
+    make.annotation.indexes(bux.con, annoTable(bux.db))
+    
     invisible(dbDisconnect(bux.con))
 }
 
@@ -430,6 +434,10 @@ adjust.labels <- function(bux.db, err.breaks.dta)
     
     dbGetQuery(bux.con, paste("DROP TABLE temp_table"))
     dbGetQuery(bux.con, paste("DROP TABLE temp_table_2"))
+    
+    #as this destroys the annotTable, should rebuild the indexes
+    
+    make.annotation.indexes(bux.con, annoTable(bux.db))
     
     invisible(dbDisconnect(bux.con))
 }
