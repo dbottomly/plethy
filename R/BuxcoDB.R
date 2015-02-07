@@ -1,5 +1,5 @@
 #basic class that points to the database and allows easier manipulations
-setClass("BuxcoDB", representation(db.name="character", annotation.table="character"), prototype=prototype(db.name=character(0), annotation.table="Additional_labels"), contains=character())
+setClass("BuxcoDB", representation(db.name="character", annotation.table="character"), prototype=prototype(db.name=character(0), annotation.table="Additional_labels"))
 
 makeBuxcoDB <- function(db.name=NULL, annotation.table="Additional_labels")
 {
@@ -85,10 +85,30 @@ setMethod("makeIndexes", signature("BuxcoDB"), function(obj, annotation.table=an
           })
 
 setMethod("show", signature("BuxcoDB"), function(object)
-        {
-            message("BuxcoDB object")
-            message(paste("Database:", object@db.name))
-            message(paste("Annotation Table:", object@annotation.table))
+        {   
+            db.con <- dbConnect(SQLite(), dbName(object))
+            
+            #Adapted from AnnotationDbi::show
+            if ("metadata" %in% dbListTables(db.con))
+            {
+                metadata <- dbGetQuery(db.con, "SELECT * FROM metadata")
+            
+                cat(class(object), "object:\n")
+                cat(paste("Database:", object@db.name, "\n"))
+                cat(paste("Annotation Table:", object@annotation.table, "\n"))
+                for (i in seq_len(nrow(metadata))) {
+                    cat("| ", metadata[i, "name"], ": ", metadata[i, "value"], 
+                        "\n", sep = "")
+                }
+                
+            }else{
+                
+                cat("BuxcoDB object\n")
+                cat(paste("Database:", object@db.name, "\n"))
+                cat(paste("Annotation Table:", object@annotation.table, "\n"))
+                cat("No metadata is available\n")
+                
+            }
         })
 
 setGeneric("summaryMeasures", def=function(obj,...) standardGeneric("summaryMeasures"))
@@ -381,7 +401,20 @@ make.annotation.indexes <- function(db.con, anno.table)
     test.query <- dbGetQuery(db.con, paste("SELECT * FROM", anno.table, "limit 5"))
                     
     id.col <- names(test.query)[grep("_ID", names(test.query))]
-    stopifnot(length(id.col) == 1)
+    
+    if (length(id.col) > 1 && any(grep("_ID", names(test.query)) == 1))
+    {
+        id.col <- names(test.query)[1]
+        
+    }else if (length(id.col) == 0)
+    {
+        warning(paste("Warning:", anno.table, "does not appear to have an ID column, skipping indexing..."))
+        invisible(T)
+    }else if (length(id.col) > 1) {
+        warning(paste("Warning: There appears to be multiple _ID columns for table:", anno.table, "skipping indexing..."))
+        invisible(T)
+    }
+    
     lo.cols <- setdiff(names(test.query), id.col)
     
     index.query <- paste("CREATE INDEX IF NOT EXISTS",paste(anno.table,"_", id.col, "_ind", sep=""),"ON",anno.table,"(",id.col,")")
@@ -436,7 +469,7 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
     schema.list <- list(Sample=list(primary.key="Sample_ID", foreign.keys=NULL, record.vars="Sample_Name"),
                         Bux_table=list(primary.key="Bux_table_ID", foreign.keys=NULL, record.vars="Bux_table_Name"),
                         Variable=list(primary.key="Variable_ID", foreign.keys=NULL, record.vars="Variable_Name"),
-                        Timepoint=list(primary.key="Timepoint_ID", foreign.keys=NULL, record.vars="P_Time"),
+                        Timepoint=list(primary.key="Time_ID", foreign.keys=NULL, record.vars="P_Time"),
                         Chunk_Time=list(primary.key="Break_Chunk_ID", foreign.keys=c("Sample_ID", "Time_ID", "Bux_table_ID", "Variable_ID", "Break_number"),
                             record.vars=c("Break_sec_start", "Rec_Exp_date")),
                         Data=list(primary.key="Data_ID", foreign.keys=c("Time_ID", "Variable_ID", "Sample_ID", "Bux_table_ID"), record.vars="Value"))
@@ -444,6 +477,12 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
     db.con <- dbConnect(SQLite(), db.name)
     
     db.tables <- dbListTables(db.con)
+    
+    if ("metadata" %in% db.tables)
+    {
+        dbGetQuery(db.con, "DROP TABLE metadata;")
+        db.tables <- dbListTables(db.con)
+    }
     
     if (length(setdiff(names(schema.list), db.tables)) == length(schema.list))
     {
@@ -504,7 +543,6 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
         #does the annotation table exist?
         
         annot.tab <- setdiff(db.tables, c(names(schema.list), "sqlite_sequence"))
-        
         temp.dta <- bux.dta[,c(schema.list$Chunk_Time$primary.key, annot.cols)]
         temp.dta <- temp.dta[!duplicated(temp.dta),]
         
@@ -541,6 +579,13 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
     {
     	cur.annot.table <- "Additional_labels"
     }
+    
+    #now make a new metadata table
+    
+    meta.dta <- data.frame(name=c("PARSE_DATE", "DBSCHEMA", "package", "Db type", "DBSCHEMAVERION"),
+                           value=c(as.character(Sys.time()), "Buxco", "plethy", "BuxcoDB", "1.0"), stringsAsFactors=F)
+    
+    dbWriteTable(db.con, "metadata", meta.dta, row.names=F)
     
     dbDisconnect(db.con)
     

@@ -5,6 +5,8 @@ importClassesFrom(Streamer, ReadLinesProducer)
 importMethodsFrom(Streamer, yield)
 importFrom(Streamer, ReadLinesProducer, close.ConnectionProducer)
 
+importFrom(Biobase, createPackage)
+
 importFrom(RColorBrewer, brewer.pal, brewer.pal.info)
 
 importMethodsFrom(DBI, dbCommit, dbConnect, dbDisconnect, dbListTables,

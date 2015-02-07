@@ -208,7 +208,7 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main=plot.value, oute
     
     bottom.ylim <- range(all.meds, na.rm = TRUE)
     
-    par(mai = c(0.4, side2, 0.05, 0.05))
+    par(mai = c(0.6, side2, 0.05, 0.05))
     plot(utime, all.meds[,1], type = "l", ylim = bottom.ylim, xaxt = "n", 
         xlab = "", ylab = "Median", col=outer.cols[colnames(all.meds)[1]])
     
@@ -223,6 +223,7 @@ mvtsplot.data.frame <- function(use.dta, plot.value="Penh",main=plot.value, oute
     
     par(usr = c(c(0,nrow(all.meds)) , par("usr")[3:4]))
     Axis(at=1:nrow(all.meds), labels=rownames(all.meds), side = 1)
+    mtext("Days", side=1, outer=F, padj=3, cex=.7)
     
     #as the above margins are too large, mainly as a placeholder...
     par(mai = c(0.05, 0.05, 0.1, 0.1))
@@ -649,4 +650,48 @@ fix.sample.ids <- function(bux.dta)
     
     return(bux.dta[,c("ID", "RIX_ID", "Mating", non.samp.name.col)])
 }
+
+make.db.package <- function(obj, author=NULL, author.email=NULL)
+{
+    if (missing(author) || is.null(author) || all(is.na(author)))
+    {
+        author <- "Unknown"
+    }
+    
+    if (missing(author.email) || is.null(author.email) || all(is.na(author.email)))
+    {
+        author.email <- "Unknown@unknown.com"
+    }
+    
+    if (regexpr("^[A-Za-z0-9\\.]+$", dbName(obj), perl=T) == -1)
+    {
+        stop("ERROR: package names need to only contain letters, numbers and dots")
+    }
+    
+    db.name <- file.path("temp.package", "inst", "extdata", "package.db")
+    bux.db.name <- file.path(dbName(obj), "inst", "extdata", "plethy_db.RData")
+    
+    package.desc <- packageDescription("plethy")
+    
+    syms <- list(PKGNAME=basename(dbName(obj)), VERSION=package.desc$Version, DBTYPE="BuxcoDB", MANUF="Buxco", LIC=package.desc$License,
+            DB_NAME="package.db", AUTHOR=author, AUTHOREMAIL=author.email)
+    
+    createPackage(pkgname="temp.package", destinationDir=".", originDir=system.file(file.path("extdata", "plethy.template"), package = "plethy"),
+                  symbolValues=syms, unlink=TRUE, quiet=T)
+    
+    #the extdata directory doesn't get transferred over probably as it is empty...
+    if (file.exists(dirname(db.name))==FALSE)
+    {
+        dir.create(dirname(db.name), recursive=TRUE)
+    }
+    
+    file.rename(from=dbName(obj), to=db.name)
+    file.rename(from="temp.package", to=dbName(obj))
+    
+    save(obj, file=bux.db.name)
+    
+    invisible(dbName(obj))
+}
+
+
 

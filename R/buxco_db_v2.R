@@ -176,7 +176,8 @@ get.simple.single.col.query <- function(db.name, var.name, col.suffix="_Name")
 #table.delim and burn.in.lines define how the lines of the file are seperated into categories: first seperated by table and then by the lines indicating transition
 #from one phase measurement phase to another (i.e. acclimation to experimental measurements)
 parse.buxco <- function(file.name=NULL, table.delim="Table", burn.in.lines=c("Measurement", "Create measurement", "Waiting for",
-                        "Site Acknowledgement Changed"), chunk.size=500,db.name="bux_test.db", max.run.time.minutes=60, overwrite=TRUE, verbose=TRUE)
+                        "Site Acknowledgement Changed"), chunk.size=500,db.name="bux_test.db", max.run.time.minutes=60, overwrite=TRUE, verbose=TRUE,
+                        make.package=F, author=NULL, author.email=NULL)
 {
     if (missing(file.name) || is.null(file.name))
     {
@@ -233,9 +234,24 @@ parse.buxco <- function(file.name=NULL, table.delim="Table", burn.in.lines=c("Me
     if (verbose == TRUE) message("Reached the end of the file, writing remaining data")
     write.sample.db(db.con=db.con, dta.tab=sampTab(ret.list), ret.list=ret.list, verbose=verbose)
     
+    #write a metadata table for potential future use...
+    
+    meta.dta <- data.frame(name=c("PARSE_DATE", "DBSCHEMA", "package", "Db type", "DBSCHEMAVERION"),
+                           value=c(as.character(Sys.time()), "Buxco", "plethy", "BuxcoDB", "1.0"), stringsAsFactors=F)
+    
+    dbWriteTable(db.con, "metadata", meta.dta, row.names=F)
+    
     dbDisconnect(db.con)
     
-    return(makeBuxcoDB(db.name=db.name, annotation.table="Additional_labels"))
+    ret.obj <- makeBuxcoDB(db.name=db.name, annotation.table="Additional_labels")
+    
+    if (make.package){
+        
+        make.db.package(ret.obj, author=author, author.email=author.email)
+        
+    }else{
+        return(ret.obj)
+    }
 }
 
 #takes the read in bux.lines and searches them for presence of the string defined in table.delim
@@ -301,11 +317,27 @@ examine.table.lines <- function(bux.lines, table.delim, burn.in.lines, ret.list,
             
             if (table.break.dta$width[1] > 1)
             {
+                ###modification 2-5-2015 to allow reading in entire file
+                if (length(curTable(ret.list)) == 0)
+                {
+                    curTable(ret.list) <- table.break.name[1]
+                }
+                
                 ret.list <- table.lines.to.dta(table.lines=bux.lines[table.break.dta$start[1]:table.break.dta$end[1]], ret.list=ret.list, db.con=db.con, tab.name=curTable(ret.list),
                                            burn.in.lines=burn.in.lines)
                 ret.list <- write.sample.breaks(db.con=db.con, ret.list=ret.list, verbose=verbose)
-            
-                curTable(ret.list) <- table.break.name
+                
+                ###modification 2-5-2015 to allow reading in entire file
+                
+                if (length(table.break.name) == 2)
+                {
+                    curTable(ret.list) <- table.break.name[2]
+                }else if (length(table.break.name) == 1){
+                    curTable(ret.list) <- table.break.name
+                }else{
+                    stop("ERROR: Unexpected size of table.break.name")
+                }
+                
                 table.lines <- bux.lines[table.break.dta$start[2]:table.break.dta$end[2]]
             }
             else

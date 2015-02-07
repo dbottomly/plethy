@@ -1,20 +1,10 @@
-Changes in version 0.99.4:
+Changes in version 1.5.10:
+	o	Modified 'show' method of 'BuxcoDB' objects to utilize available metadata
 
-SIGNIFICANT USER-VISIBLE CHANGES
-
-	o	The 'BuxcoR' package is now renamed 'plethy' as of version 0.99.3.  
-
-NEW FEATURES
-
-	o	Added 'add.labels.by.sample', 'get.err.breaks' and 'adjust.labels'
-	 to assist with QA/QC of data.
-
-Changes in version 1.1.3:
+Changes in version 1.5.7:
 
 NEW FEATURES:
-
-	o	Added 'summaryMeasures' method.
-	o	Added experimental heatmap-like plotting functionality 'plethy:::mvtsplot'
+	o	Added ability to generate SQLite packages similar to AnnotationDbi
 
 Changes in version 1.3.1:
 
@@ -29,3 +19,21 @@ SIGNIFICANT USER VISIBLE CHANGES
 	o	Removed dependency on the 'batch' package
 	o	Exported 'proc.sanity'
 	o	Added dependency on ggplot2
+
+Changes in version 1.1.3:
+
+NEW FEATURES:
+
+	o	Added 'summaryMeasures' method.
+	o	Added experimental heatmap-like plotting functionality 'plethy:::mvtsplot'
+
+Changes in version 0.99.4:
+
+SIGNIFICANT USER-VISIBLE CHANGES
+
+	o	The 'BuxcoR' package is now renamed 'plethy' as of version 0.99.3.  
+
+NEW FEATURES
+
+	o	Added 'add.labels.by.sample', 'get.err.breaks' and 'adjust.labels'
+	 to assist with QA/QC of data.

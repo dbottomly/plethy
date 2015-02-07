@@ -9,7 +9,8 @@ A typical Buxco respirometry experiment involves collecting repeated measures on
 
 }
 \usage{
-parse.buxco(file.name = NULL, table.delim = "Table", burn.in.lines = c("Measurement", "Create measurement", "Waiting for", "Site Acknowledgement Changed"), chunk.size = 500, db.name = "bux_test.db", max.run.time.minutes = 60, overwrite = TRUE, verbose=TRUE)
+parse.buxco(file.name = NULL, table.delim = "Table", burn.in.lines = c("Measurement", "Create measurement", "Waiting for", "Site Acknowledgement Changed"),
+  chunk.size = 500, db.name = "bux_test.db", max.run.time.minutes = 60, overwrite = TRUE, verbose=TRUE, make.package = F, author = NULL, author.email = NULL)
 parse.buxco.basic(file.name=NULL, table.delim="Table", burn.in.lines=c("Measurement", "Create measurement", "Waiting for", "Site Acknowledgement Changed"))
 }
 \arguments{
@@ -38,6 +39,16 @@ A logical value specifying whether the local database specified in \code{db.name
 }
 \item{verbose}{
 A logical value specifying if additional information should be printed as parsing progresses.
+}
+\item{make.package}{
+A logical value indicating whether a package should be created in db.name instead of a database file.
+}
+\item{author}{
+If make.package == T, a string value indicating who the package author should be.
+}
+
+\item{author.email}{
+If make.package == T, a string value indicating what the package author's email address should be.
 }
 }
 \details{

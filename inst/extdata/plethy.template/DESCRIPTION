@@ -1,0 +1,11 @@
+Package: @PKGNAME@
+Title: plethy @DBTYPE@
+Description: plethy @DBTYPE@ for use with @MANUF@ plethysmography data
+Version: @VERSION@
+Author: @AUTHOR@
+Maintainer: @AUTHOR@ <@AUTHOREMAIL@>
+LazyLoad: yes
+Depends: R (>= 3.0.0),methods, plethy
+License: @LIC@
+biocViews: AnnotationData
+ZipData: no
