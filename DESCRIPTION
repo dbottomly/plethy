@@ -1,5 +1,5 @@
 Package: plethy
-Version: 1.8.0
+Version: 1.9.0
 Date: 2013-4-26
 Title: R framework for exploration and analysis of respirometry data
 Authors@R: c(person("Daniel", "Bottomly", role=c("aut", "cre"), email="bottomly@ohsu.edu"),
