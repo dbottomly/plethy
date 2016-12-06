@@ -294,7 +294,7 @@ add.labels.by.sample <- function(bux.db, sample.labels)
     if ("temp_table" %in% dbListTables(bux.con))
     {
         warning("Table 'temp_table' already exists dropping...")
-        dbGetQuery(bux.con, "DROP TABLE temp_table")
+        .run.update.statement(bux.con, "DROP TABLE temp_table")
     }
     
     label.cols <- setdiff(names(sample.labels), c("samples", "phase"))
@@ -344,27 +344,25 @@ add.labels.by.sample <- function(bux.db, sample.labels)
         basic.col <- "Sample_Name"
     }
     
-    dbGetQuery(bux.con, paste("CREATE TEMPORARY TABLE temp_table (", paste(paste(basic.col, "TEXT"), collapse=",") ,", ", all.labels,")"))
+    .run.update.statement(bux.con, paste("CREATE TEMPORARY TABLE temp_table (", paste(paste(basic.col, "TEXT"), collapse=",") ,", ", all.labels,")"))
     
     ins.query <- paste("INSERT INTO temp_table VALUES (",paste(paste0(":", basic.col), collapse=",") ,", ",paste(paste0(":", label.cols), collapse=","),")")
     
     names(sample.labels)[names(sample.labels) == "samples"] <- "Sample_Name"
     names(sample.labels)[names(sample.labels) == "phase"] <- "Rec_Exp_date"
     
-    dbBegin(bux.con)
-    dbGetPreparedQuery(bux.con, ins.query, sample.labels)
-    dbCommit(bux.con)
+    .insert.data(bux.con, ins.query, sample.labels)
 
     #perform the merging step
     
-    dbGetQuery(bux.con, paste("CREATE TABLE temp_table_2 AS SELECT ",paste(c(dbListFields(bux.con, annoTable(bux.db)), label.cols), collapse=",")," FROM Sample NATURAL LEFT OUTER JOIN temp_table NATURAL JOIN Chunk_Time NATURAL JOIN", annoTable(bux.db)))
+    .run.update.statement(bux.con, paste("CREATE TABLE temp_table_2 AS SELECT ",paste(c(dbListFields(bux.con, annoTable(bux.db)), label.cols), collapse=",")," FROM Sample NATURAL LEFT OUTER JOIN temp_table NATURAL JOIN Chunk_Time NATURAL JOIN", annoTable(bux.db)))
     
-    dbGetQuery(bux.con, paste("DROP TABLE", annoTable(bux.db)))
+    .run.update.statement(bux.con, paste("DROP TABLE", annoTable(bux.db)))
     
-    dbGetQuery(bux.con, paste("CREATE TABLE", annoTable(bux.db), "AS SELECT * FROM temp_table_2"))
+    .run.update.statement(bux.con, paste("CREATE TABLE", annoTable(bux.db), "AS SELECT * FROM temp_table_2"))
     
-    dbGetQuery(bux.con, paste("DROP TABLE temp_table"))
-    dbGetQuery(bux.con, paste("DROP TABLE temp_table_2"))
+    .run.update.statement(bux.con, paste("DROP TABLE temp_table"))
+    .run.update.statement(bux.con, paste("DROP TABLE temp_table_2"))
     
     #as this destroys the annotTable, should rebuild the indexes
     
@@ -397,13 +395,11 @@ adjust.labels <- function(bux.db, err.breaks.dta)
         stop("ERROR: It appears that this operation has been performed before, performing it multiple times is currently not supported")
     }
     
-    dbGetQuery(bux.con, "CREATE TEMPORARY TABLE temp_table (Sample_Name TEXT, Variable_Name TEXT, Rec_Exp_date TEXT, Break_number INT, inferred_labs TEXT)")
+    .run.update.statement(bux.con, "CREATE TEMPORARY TABLE temp_table (Sample_Name TEXT, Variable_Name TEXT, Rec_Exp_date TEXT, Break_number INT, inferred_labs TEXT)")
     
     ins.query <- paste("INSERT INTO temp_table VALUES (:Sample_Name, :Variable_Name, :Rec_Exp_date, :Break_number, :inferred_labs)")
     
-    dbBegin(bux.con)
-    dbGetPreparedQuery(bux.con, ins.query, err.breaks.dta)
-    dbCommit(bux.con)
+    .insert.data(bux.con, ins.query, err.breaks.dta)
 
     use.cols <- dbListFields(bux.con, annoTable(bux.db))
     
@@ -416,7 +412,7 @@ adjust.labels <- function(bux.db, err.breaks.dta)
     
     use.cols[which.btl] <- paste(use.cols[which.btl], " AS Break_type_label_orig")
     
-    dbGetQuery(bux.con, paste("CREATE TEMPORARY TABLE temp_table_2 AS SELECT", paste(use.cols, collapse=","), ", IFNULL(inferred_labs, Break_type_label) AS Break_type_label FROM ",annoTable(bux.db),"NATURAL JOIN Chunk_Time NATURAL JOIN Sample NATURAL JOIN Variable NATURAL LEFT OUTER JOIN temp_table"))
+    .run.update.statement(bux.con, paste("CREATE TEMPORARY TABLE temp_table_2 AS SELECT", paste(use.cols, collapse=","), ", IFNULL(inferred_labs, Break_type_label) AS Break_type_label FROM ",annoTable(bux.db),"NATURAL JOIN Chunk_Time NATURAL JOIN Sample NATURAL JOIN Variable NATURAL LEFT OUTER JOIN temp_table"))
     
     #check to make sure the new version is the same size as the old version
     
@@ -429,12 +425,12 @@ adjust.labels <- function(bux.db, err.breaks.dta)
     
     #now drop the old annotTable and replace it with the temporary one...
     
-    dbGetQuery(bux.con, paste("DROP TABLE", annoTable(bux.db)))
+    .run.update.statement(bux.con, paste("DROP TABLE", annoTable(bux.db)))
     
-    dbGetQuery(bux.con, paste("CREATE TABLE", annoTable(bux.db), "AS SELECT * FROM temp_table_2"))
+    .run.update.statement(bux.con, paste("CREATE TABLE", annoTable(bux.db), "AS SELECT * FROM temp_table_2"))
     
-    dbGetQuery(bux.con, paste("DROP TABLE temp_table"))
-    dbGetQuery(bux.con, paste("DROP TABLE temp_table_2"))
+    .run.update.statement(bux.con, paste("DROP TABLE temp_table"))
+    .run.update.statement(bux.con, paste("DROP TABLE temp_table_2"))
     
     #as this destroys the annotTable, should rebuild the indexes
     

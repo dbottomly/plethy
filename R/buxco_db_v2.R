@@ -675,9 +675,7 @@ write.sample.db <- function(db.con, dta.tab, ret.list, verbose)
         
         data.query <- paste("INSERT INTO Data VALUES (", paste(paste0(":", names(data.tab)), collapse=","), ")")
         
-        dbBegin(db.con)
-        dbGetPreparedQuery(db.con, data.query, bind.data = data.tab)
-	dbCommit(db.con)
+        .insert.data(db.con, data.query, data.tab)
         
         #dbWriteTable(conn=db.con, name="Data", value=data.tab, row.names = FALSE, overwrite = FALSE, append = TRUE)
         
@@ -687,9 +685,7 @@ write.sample.db <- function(db.con, dta.tab, ret.list, verbose)
         
         chunk.query <- paste("INSERT INTO Chunk_Time VALUES (", paste(paste0(":", names(chunk.tab)), collapse=","), ")")
         
-        dbBegin(db.con)
-        dbGetPreparedQuery(db.con, chunk.query, bind.data = chunk.tab)
-	dbCommit(db.con)
+        .insert.data(db.con, chunk.query, chunk.tab)
         
         #dbWriteTable(conn=db.con, name="Chunk_Time", value=chunk.tab, row.names=FALSE, overwrite=FALSE, append=TRUE)
         
@@ -798,9 +794,8 @@ db.insert.autoinc <- function(db.con, table.name, col.name, values, return.query
     names(ins.dta) <- c("prim_key", col.name)
     
     query <- paste0("INSERT OR IGNORE INTO ", table.name, " VALUES (:prim_key, :",col.name,")")
-    dbBegin(db.con)
-    dbGetPreparedQuery(db.con, query, bind.data = ins.dta)
-    dbCommit(db.con)
+    
+    .insert.data(db.con, query, ins.dta)
     
     if(return.query.type == "reverse")
     {
@@ -845,7 +840,7 @@ create.tables <- function(db.con)
     
     for (i in 1:length(query.list))
     {
-        stopifnot(is.null(dbGetQuery(db.con, query.list[[i]])))
+        .run.update.statement(db.con, query.list[[i]])
     }
 
 }

@@ -1,6 +1,24 @@
 #basic class that points to the database and allows easier manipulations
 setClass("BuxcoDB", representation(db.name="character", annotation.table="character"), prototype=prototype(db.name=character(0), annotation.table="Additional_labels"))
 
+.run.update.statement <- function(db.con, query){
+  state <- dbSendStatement(db.con, query)
+  dbHasCompleted(state)
+  dbClearResult(state)
+}
+
+.insert.data <- function(db.con, query, data){
+  #way too slow, stick with depricated version for now
+  #state <- dbSendQuery(db.con, query)
+  #dbBind(state, data)
+  #dbClearResult(state)
+  
+  dbBegin(db.con)
+  suppressWarnings(state <- dbSendPreparedQuery(db.con, query, bind.data = data))
+  dbClearResult(state)
+  dbCommit(db.con)
+}
+
 makeBuxcoDB <- function(db.name=NULL, annotation.table="Additional_labels")
 {
     if (missing(db.name) || is.null(db.name))
@@ -384,7 +402,7 @@ setMethod("addAnnotation", signature("BuxcoDB"), function(obj, query=NULL, index
                     }
                     else
                     {
-                        stopifnot(is.null(dbGetQuery(db.con, i)))
+                        .run.update.statement(db.con, i)
                     }
                 }
                 
@@ -395,7 +413,7 @@ setMethod("addAnnotation", signature("BuxcoDB"), function(obj, query=NULL, index
                 
                 dbDisconnect(db.con)
           })
-          
+     
 make.annotation.indexes <- function(db.con, anno.table)
 {
     test.query <- dbGetQuery(db.con, paste("SELECT * FROM", anno.table, "limit 5"))
@@ -418,7 +436,8 @@ make.annotation.indexes <- function(db.con, anno.table)
     lo.cols <- setdiff(names(test.query), id.col)
     
     index.query <- paste("CREATE INDEX IF NOT EXISTS",paste(anno.table,"_", id.col, "_ind", sep=""),"ON",anno.table,"(",id.col,")")
-    dbGetQuery(db.con, index.query)
+    
+    .run.update.statement(db.con, index.query)
     
     if (length(lo.cols) > 1)
     {
@@ -430,7 +449,7 @@ make.annotation.indexes <- function(db.con, anno.table)
         {
             paste.rows <- paste(unlist(perms[i,]), collapse=", ")
             var.query <- paste("CREATE INDEX IF NOT EXISTS",paste(anno.table,"_ind_",i,sep=""),"ON",anno.table,"(",paste.rows,")")
-            dbGetQuery(db.con, var.query)
+            .run.update.statement(db.con, var.query)
         }
     }
     
@@ -480,7 +499,7 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
     
     if ("metadata" %in% db.tables)
     {
-        dbGetQuery(db.con, "DROP TABLE metadata;")
+        .run.update.statement(db.con, "DROP TABLE metadata;")
         db.tables <- dbListTables(db.con)
     }
     
@@ -523,9 +542,8 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
             
             if (is.na(prev.max.primary)) prev.max.primary <- 0
             
-            dbBegin(db.con)
-            dbGetPreparedQuery(db.con, use.sql, bind.data = temp.dta)
-            dbCommit(db.con)
+            .insert.data(db.con, use.sql, temp.dta)
+           
             bux.dta <- merge(bux.dta, dbGetQuery(db.con, paste("SELECT * FROM", i, "WHERE", cur.schema$primary.key, ">", prev.max.primary)), all=TRUE, incomparables=NULL, sort=FALSE)
             
         }
@@ -568,9 +586,8 @@ dbImport <- function(bux.db=NULL, bux.dta, db.name="merge_test_1.db", debug=FALS
             }
             
             use.sql <- paste("INSERT INTO", annot.tab, "(", paste(colnames(temp.dta), collapse=",") ,")","VALUES (", paste(paste("$", colnames(temp.dta), sep=""), collapse=",") ,")")
-            dbBegin(db.con)
-            dbGetPreparedQuery(db.con, use.sql, bind.data = temp.dta)
-            dbCommit(db.con)
+            
+            .insert.data(db.con, use.sql, temp.dta)
             
             cur.annot.table <- annot.tab
         }

@@ -1,4 +1,6 @@
 import(methods)
+import(DBI)
+import(RSQLite)
 import(BiocGenerics)
 import(S4Vectors)
 importClassesFrom(Streamer, ReadLinesProducer)
@@ -8,13 +10,6 @@ importFrom(Streamer, ReadLinesProducer, close.ConnectionProducer)
 importFrom(Biobase, createPackage)
 
 importFrom(RColorBrewer, brewer.pal, brewer.pal.info)
-
-importMethodsFrom(DBI, dbCommit, dbConnect, dbDisconnect, dbListTables,
-	dbListFields, dbGetQuery, dbWriteTable)
-
-importFrom(RSQLite, SQLite)
-
-importMethodsFrom(RSQLite, dbGetPreparedQuery, dbBegin)
 
 importFrom(reshape2, melt,acast)
 

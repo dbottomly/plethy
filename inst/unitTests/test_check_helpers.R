@@ -1,4 +1,3 @@
-require(RSQLite)
 require(reshape2)
 
 
@@ -245,7 +244,7 @@ test.annoCols <- function()
 	
 	checkTrue(length(anno.col.fail) == 0)
 	
-	local.samp.db <- file.path(getwd(), basename(sample.db.path()))
+	local.samp.db <- tempfile()
 	checkTrue(file.copy(from=sample.db.path(), to=local.samp.db))
 	
 	bux.db <- makeBuxcoDB(local.samp.db)
@@ -273,7 +272,7 @@ test.annoLevels <- function()
 	
 	checkTrue(length(anno.lev.fail) == 0)
 	
-	local.samp.db <- file.path(getwd(), basename(sample.db.path()))
+	local.samp.db <- tempfile()
 	checkTrue(file.copy(from=sample.db.path(), to=local.samp.db))
 	
 	checkTrue(file.exists(local.samp.db))
@@ -327,7 +326,7 @@ natural.join.tables <- function(db.con)
 #Left off here, modifying unit tests for use with example data...
 test.retrieveData <- function()
 {
-	local.samp.db <- file.path(getwd(), basename(sample.db.path()))
+	local.samp.db <- tempfile()
 	checkTrue(file.copy(from=sample.db.path(), to=local.samp.db))
 	
 	checkTrue(file.exists(local.samp.db))
@@ -425,7 +424,7 @@ test.retrieveData <- function()
 
 test.addAnnotation <- function()
 {
-	local.samp.db <- file.path(getwd(), basename(sample.db.path()))
+	local.samp.db <- tempfile()
 	
 	checkTrue(file.copy(from=sample.db.path(), to=local.samp.db))
 
@@ -451,9 +450,13 @@ test.addAnnotation <- function()
 
 	checkIdentical(break.time.merge$inf.days, break.time.merge$Days)
 	
+	dbDisconnect(db.con)
+	
 	#just a quick check here
 	
 	addAnnotation(bux.db, query=break.type.query)
+	
+	db.con <- dbConnect(SQLite(), dbName(bux.db))
 	
 	all.annots <- dbGetQuery(db.con, paste("select * from", annoTable(bux.db)))
 	
@@ -741,7 +744,11 @@ test.write.sample.db <- function()
 	
 	for(i in list(sub.tab, time.tab, data.tab, break.tab))
 	{
-		checkTrue(is.null(dbGetQuery(test.con, i)))
+	  
+	  state <- dbSendStatement(test.con, i)
+	  checkTrue(dbHasCompleted(state))
+	  checkTrue(dbClearResult(state))
+	  
 	}
 	
 	subj.1 <- data.frame(Subject="907_L_f", Time=c("9/24/2012 3:48:21 PM", "9/24/2012 3:48:23 PM", "9/24/2012 3:48:25 PM", "9/24/2012 3:48:27 PM"),
@@ -860,7 +867,9 @@ test.db.insert.autoincrement <- function()
 	sub.tab <- "CREATE TABLE IF NOT EXISTS Sample (Sample_ID INTEGER CONSTRAINT Samp_pk PRIMARY KEY AUTOINCREMENT,
                     Sample_Name TEXT CONSTRAINT Samp_name UNIQUE)"
 	
-	stopifnot(is.null(dbGetQuery(test.con, sub.tab)))
+	state <- dbSendStatement(test.con, sub.tab)
+	checkTrue(dbHasCompleted(state))
+	checkTrue(dbClearResult(state))
 	
 	test.samps <- c("907_L_f", "907_B_f", "907_N_f", "907_R_f", "906_R_m", "906_L_m", "908_N_s", "908_R_s", "908_L_s", "908_B_s", "906_N_m")
 
